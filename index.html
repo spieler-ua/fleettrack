@@ -721,6 +721,40 @@ body {
 .driver-odo-bar .odo-val { font-family: var(--sans); font-weight: 700; font-size: 15px; color: var(--b); }
 .driver-odo-bar .odo-meta { font-size: 10px; color: var(--txt3); text-align: right; }
 
+/* ── ADDRESSES ── */
+.trip-addr-row {
+  border-top: 1px solid var(--line);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.addr-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11px;
+}
+.addr-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.addr-dot.start { background: var(--g); box-shadow: 0 0 5px var(--g); }
+.addr-dot.end   { background: var(--r); box-shadow: 0 0 5px var(--r); }
+.addr-connector {
+  width: 1px;
+  height: 10px;
+  background: var(--line2);
+  margin-left: 3.5px;
+}
+.addr-text { color: var(--txt2); line-height: 1.35; flex: 1; }
+.addr-text strong { color: var(--txt); font-weight: 500; display: block; }
+.addr-text .addr-loading { color: var(--txt3); font-style: italic; }
+
+.wp-addr { font-size: 10px; color: var(--txt3); margin-top: 3px; font-style: italic; }
+
 .leaflet-container { background: var(--bg0) !important; }
 .leaflet-tile { filter: brightness(0.85) saturate(0.9); }
 
@@ -1357,11 +1391,79 @@ function onGPS(driverId, pos) {
     }
   } else {
     driver._coords.push([lat, lng]);
+    // First fix — pre-fetch start address
+    if (!driver._addrStartFetched) {
+      driver._addrStartFetched = true;
+      reverseGeocode(lat, lng).then(a => { if (a) driver._addrStart = a; });
+    }
   }
 
   updateDriverOnMap(driver, [lat, lng]);
   renderDrivers();
   if (mapInited) renderLegend();
+}
+
+// ══════════════════════════════════════
+// REVERSE GEOCODING (Nominatim / OSM)
+// ══════════════════════════════════════
+const _geoCache = {}; // "lat,lng" → address string
+
+async function reverseGeocode(lat, lng) {
+  const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+  if (_geoCache[key]) return _geoCache[key];
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=uk&zoom=17`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'uk' } });
+    const data = await res.json();
+    const a = data.address || {};
+    // Build short human-readable address
+    const parts = [
+      a.road || a.pedestrian || a.footway || a.path,
+      a.house_number,
+      a.city || a.town || a.village || a.suburb || a.county,
+    ].filter(Boolean);
+    const addr = parts.length ? parts.join(', ') : (data.display_name?.split(',').slice(0,2).join(', ') || '—');
+    _geoCache[key] = addr;
+    return addr;
+  } catch {
+    return null;
+  }
+}
+
+async function enrichTripAddresses(trip) {
+  if (!trip.coords || trip.coords.length < 2) return;
+  const promises = [];
+
+  // Start address
+  if (!trip.addrStart) {
+    promises.push(
+      reverseGeocode(trip.coords[0][0], trip.coords[0][1])
+        .then(a => { if (a) { trip.addrStart = a; } })
+    );
+  }
+  // End address
+  if (!trip.addrEnd) {
+    const last = trip.coords[trip.coords.length - 1];
+    promises.push(
+      reverseGeocode(last[0], last[1])
+        .then(a => { if (a) { trip.addrEnd = a; } })
+    );
+  }
+  // Waypoint addresses
+  if (trip.waypoints && trip.waypoints.length) {
+    trip.waypoints.forEach(wp => {
+      if (!wp.addr) {
+        promises.push(
+          reverseGeocode(wp.lat, wp.lng)
+            .then(a => { if (a) wp.addr = a; })
+        );
+      }
+    });
+  }
+
+  await Promise.all(promises);
+  saveState();
+  renderHistory();
 }
 
 function stopTracking(driverId) {
@@ -1394,8 +1496,12 @@ function stopTracking(driverId) {
       coords: [...driver._coords],
       waypoints: JSON.parse(JSON.stringify(driver.waypoints || [])),
       odoStart, odoEnd, odoTotal,
+      addrStart: driver._addrStart || null,
+      addrEnd: null,
     };
     state.trips.unshift(trip);
+    // Async: fetch start/end addresses in background
+    enrichTripAddresses(trip);
   }
 
   // Reset driver
@@ -1406,6 +1512,8 @@ function stopTracking(driverId) {
   driver.waypoints = [];
   driver._tripSeconds = 0;
   driver.tripStart = null;
+  driver._addrStart = null;
+  driver._addrStartFetched = false;
 
   if (driverLayers[driver.id]) {
     driverLayers[driver.id].polyline.setLatLngs([]);
@@ -1530,6 +1638,17 @@ function saveWaypointWithOdo() {
   driver.waypoints = [...wps, wp];
   _haptic('light');
   closeModal('modal-odo');
+
+  // Async fetch address for this waypoint
+  reverseGeocode(pos[0], pos[1]).then(addr => {
+    if (addr) {
+      const d = state.drivers.find(d => d.id === _odoDriverId);
+      if (d) {
+        const w = d.waypoints.find(w => w.id === wp.id);
+        if (w) { w.addr = addr; renderDrivers(); }
+      }
+    }
+  });
 
   // Marker on map
   if (mapInited) {
@@ -1770,6 +1889,38 @@ function renderHistory() {
           <div class="trip-cell"><div class="tc-val" style="color:var(--g)">+${t.odoTotal.toFixed(1)}</div><div class="tc-lbl">Пробіг спідом. км</div></div>
         </div>`
       : '';
+
+    // Address block
+    const hasAddr = t.addrStart || t.addrEnd;
+    const addrLoading = t.coords && t.coords.length >= 2 && !hasAddr;
+    const addrRow = `
+      <div class="trip-addr-row">
+        <div class="addr-line">
+          <div class="addr-dot start"></div>
+          <div class="addr-text">
+            <span style="font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.5px;">Старт</span>
+            <strong>${t.addrStart || (addrLoading ? '<span class="addr-loading">Визначення адреси...</span>' : '—')}</strong>
+          </div>
+        </div>
+        <div class="addr-connector" style="margin-left:3.5px;"></div>
+        <div class="addr-line">
+          <div class="addr-dot end"></div>
+          <div class="addr-text">
+            <span style="font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:0.5px;">Фініш</span>
+            <strong>${t.addrEnd || (addrLoading ? '<span class="addr-loading">Визначення адреси...</span>' : '—')}</strong>
+          </div>
+          ${!hasAddr && t.coords?.length >= 2 ? `<button onclick="event.stopPropagation();fetchAddrForTrip(${t.id})" style="background:transparent;border:1px solid var(--line2);border-radius:5px;color:var(--txt3);font-size:10px;padding:2px 7px;cursor:pointer;white-space:nowrap;flex-shrink:0;">🔄 Адреси</button>` : ''}
+        </div>
+        ${t.waypoints?.some(w => w.addr) ? t.waypoints.filter(w=>w.addr).map((w,i) => `
+          <div class="addr-line" style="margin-top:3px;">
+            <div style="width:8px;height:8px;border-radius:2px;background:var(--o);flex-shrink:0;margin-top:3px;"></div>
+            <div class="addr-text" style="font-size:10px;">
+              <span style="color:var(--txt3)">П${i+1}${w.note ? ' · ' + w.note : ''}</span>
+              <strong style="font-weight:400;">${w.addr}</strong>
+            </div>
+          </div>`).join('') : ''}
+      </div>`;
+
     return `
     <div class="trip-card" onclick="showTripOnMap(${t.id})">
       <div class="trip-card-top">
@@ -1780,6 +1931,7 @@ function renderHistory() {
         </div>
         <div class="trip-dist" style="color:${t.color}">${t.distance}<span>GPS км</span></div>
       </div>
+      ${addrRow}
       <div class="trip-row">
         <div class="trip-cell"><div class="tc-val">${t.duration}</div><div class="tc-lbl">Тривалість</div></div>
         <div class="trip-cell"><div class="tc-val">${t.waypointCount}</div><div class="tc-lbl">Зупинок</div></div>
@@ -1788,6 +1940,14 @@ function renderHistory() {
       ${odoRow}
     </div>`;
   }).join('');
+}
+
+async function fetchAddrForTrip(tripId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (!trip) return;
+  toast('🔄 Визначення адрес...', 'info');
+  await enrichTripAddresses(trip);
+  toast('✓ Адреси додано', 'success');
 }
 
 function filterHistory(el, filter) {
@@ -1819,6 +1979,7 @@ function exportToExcel() {
   // ── SHEET 1: Зведення поїздок ──
   const summaryHeaders = [
     'Дата та час', 'Водій', 'Транспорт',
+    'Адреса старту', 'Адреса фінішу',
     'Відстань GPS (км)', 'Пробіг спідометр (км)',
     'Спідометр старт', 'Спідометр фініш',
     'Тривалість', 'Зупинок', 'Поч. координати', 'Кін. координати',
@@ -1830,6 +1991,8 @@ function exportToExcel() {
       t.date,
       t.driverName,
       t.vehicle || '—',
+      t.addrStart || '—',
+      t.addrEnd   || '—',
       parseFloat(t.distance),
       t.odoTotal != null ? parseFloat(t.odoTotal.toFixed(1)) : '—',
       t.odoStart != null ? t.odoStart : '—',
@@ -1845,7 +2008,8 @@ function exportToExcel() {
 
   // Column widths
   summaryWs['!cols'] = [
-    {wch:20},{wch:22},{wch:24},{wch:18},{wch:22},{wch:18},{wch:18},{wch:14},{wch:10},{wch:26},{wch:26},
+    {wch:20},{wch:22},{wch:24},{wch:30},{wch:30},
+    {wch:18},{wch:22},{wch:18},{wch:18},{wch:14},{wch:10},{wch:26},{wch:26},
   ];
 
   // Header style
@@ -1943,6 +2107,7 @@ function exportToExcel() {
   // ── SHEET 3: Деталі спідометра по точках ──
   const odoHeaders = [
     'Поїздка (дата)', 'Водій', 'Транспорт', '№ точки', 'Час',
+    'Адреса точки',
     'Спідометр (км)', 'Пробіг від попередньої (км)', 'GPS від старту (км)',
     'Джерело точки', 'Примітка', 'Широта', 'Довгота',
   ];
@@ -1957,6 +2122,7 @@ function exportToExcel() {
         t.vehicle || '—',
         i + 1,
         wp.time || '—',
+        wp.addr || '—',
         wp.odo != null ? wp.odo : '—',
         wp.odoDiff != null ? parseFloat(wp.odoDiff.toFixed(1)) : '—',
         parseFloat(wp.distFromStart || 0),
@@ -1970,7 +2136,7 @@ function exportToExcel() {
 
   if (odoRows.length > 0) {
     const odoWs = XLSX.utils.aoa_to_sheet([odoHeaders, ...odoRows]);
-    odoWs['!cols'] = [{wch:20},{wch:20},{wch:22},{wch:8},{wch:10},{wch:18},{wch:24},{wch:20},{wch:14},{wch:22},{wch:14},{wch:14}];
+    odoWs['!cols'] = [{wch:20},{wch:20},{wch:22},{wch:8},{wch:10},{wch:32},{wch:18},{wch:24},{wch:20},{wch:14},{wch:22},{wch:14},{wch:14}];
     odoHeaders.forEach((_, i) => {
       const cell = odoWs[XLSX.utils.encode_cell({r:0, c:i})];
       if (cell) cell.s = {
@@ -2229,6 +2395,17 @@ loadState();
 state.drivers.forEach(d => { if (!d._coords) d._coords = []; });
 renderDrivers();
 updateActiveBadge();
+
+// Background: fetch missing addresses for saved trips (throttled)
+setTimeout(async () => {
+  const tripsNeedingAddr = state.trips.filter(t =>
+    t.coords?.length >= 2 && (!t.addrStart || !t.addrEnd)
+  ).slice(0, 5); // max 5 at boot to avoid rate-limit
+  for (const trip of tripsNeedingAddr) {
+    await enrichTripAddresses(trip);
+    await new Promise(r => setTimeout(r, 1200)); // Nominatim rate limit: 1 req/sec
+  }
+}, 2000);
 </script>
 </body>
 </html>
