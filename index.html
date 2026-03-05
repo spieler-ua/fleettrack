@@ -678,8 +678,174 @@ body {
 }
 .export-sheet-banner span { font-size: 11px; color: var(--txt2); }
 .export-sheet-banner strong { color: var(--g); }
+
+/* ── ODOMETER ── */
+.odo-input-wrap { position: relative; margin-top: 6px; }
+.odo-input-wrap input {
+  width: 100%;
+  background: var(--bg2);
+  border: 2px solid var(--line2);
+  border-radius: 10px;
+  padding: 14px 60px 14px 14px;
+  color: var(--txt);
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 26px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+  text-align: center;
+  letter-spacing: 2px;
+}
+.odo-input-wrap input:focus { border-color: var(--g); box-shadow: 0 0 0 3px rgba(0,230,118,0.12); }
+.odo-input-wrap input::placeholder { color: var(--txt3); font-size: 16px; font-weight: 400; letter-spacing: 0; }
+.odo-unit { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--txt2); pointer-events: none; }
+.odo-diff-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(0,230,118,0.1); border: 1px solid rgba(0,230,118,0.25);
+  border-radius: 20px; padding: 5px 14px; font-size: 13px;
+  color: var(--g); font-weight: 600; margin-top: 10px;
+}
+.odo-warn { font-size: 11px; color: var(--r); margin-top: 6px; display: none; }
+.odo-prev-hint { font-size: 11px; color: var(--txt3); margin-top: 6px; text-align: center; }
+.wp-odo-row { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.wp-odo-chip {
+  background: rgba(68,138,255,0.1); border: 1px solid rgba(68,138,255,0.2);
+  border-radius: 4px; padding: 2px 7px; font-size: 10px; color: var(--b);
+}
+.wp-odo-chip.diff { background: rgba(0,230,118,0.1); border-color: rgba(0,230,118,0.2); color: var(--g); }
+.driver-odo-bar {
+  border-top: 1px solid var(--line); padding: 8px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.driver-odo-bar .odo-val { font-family: var(--sans); font-weight: 700; font-size: 15px; color: var(--b); }
+.driver-odo-bar .odo-meta { font-size: 10px; color: var(--txt3); text-align: right; }
+
 .leaflet-container { background: var(--bg0) !important; }
 .leaflet-tile { filter: brightness(0.85) saturate(0.9); }
+
+/* ── MAP PICK MODE ── */
+.map-pick-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  background: rgba(13,16,32,0.96);
+  border-bottom: 2px solid var(--o);
+  padding: 10px 14px;
+  z-index: 600;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  backdrop-filter: blur(10px);
+}
+.map-pick-bar.active { display: flex; }
+.map-pick-title {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--o);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.map-pick-title .driver-pill {
+  background: rgba(255,145,0,0.15);
+  border: 1px solid rgba(255,145,0,0.35);
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.map-pick-search {
+  display: flex;
+  gap: 6px;
+}
+.map-pick-search input {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--txt);
+  font-family: var(--mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.map-pick-search input:focus { border-color: var(--o); }
+.map-pick-search input::placeholder { color: var(--txt3); }
+.map-pick-search-btn {
+  width: 38px; height: 38px;
+  background: var(--o);
+  color: var(--bg0);
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.15s;
+}
+.map-pick-search-btn:active { opacity: 0.75; }
+.map-pick-hint { font-size: 11px; color: var(--txt3); text-align: center; }
+.map-pick-actions { display: flex; gap: 8px; }
+.map-pick-actions .modal-btn { padding: 9px; font-size: 12px; }
+
+/* crosshair */
+.map-crosshair {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 550;
+  pointer-events: none;
+  display: none;
+}
+.map-crosshair.active { display: block; }
+.map-crosshair svg { filter: drop-shadow(0 0 6px var(--o)); }
+
+/* coord readout */
+.map-coord-readout {
+  position: absolute;
+  bottom: 54px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(13,16,32,0.9);
+  border: 1px solid var(--o);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 11px;
+  color: var(--o);
+  font-weight: 500;
+  z-index: 600;
+  white-space: nowrap;
+  display: none;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+.map-coord-readout.active { display: block; }
+
+/* search results dropdown */
+.search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 44px;
+  background: var(--bg1);
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 700;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.search-result-item {
+  padding: 10px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--line);
+  color: var(--txt2);
+  line-height: 1.4;
+  transition: background 0.1s;
+}
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:active { background: var(--bg2); }
+.search-result-item strong { color: var(--txt); display: block; }
 </style>
 </head>
 <body>
@@ -710,7 +876,42 @@ body {
 ══════════════════════════════════ -->
 <div class="view" id="view-map">
   <div id="leaflet-map"></div>
+
+  <!-- Pick mode top bar -->
+  <div class="map-pick-bar" id="map-pick-bar">
+    <div class="map-pick-title">
+      📍 Вибір точки на карті
+      <span class="driver-pill" id="pick-driver-name">—</span>
+    </div>
+    <div class="map-pick-search" style="position:relative;">
+      <input type="text" id="inp-geo-search" placeholder="Пошук адреси або міста..." autocomplete="off" onkeydown="if(event.key==='Enter')geoSearch()"/>
+      <button class="map-pick-search-btn" onclick="geoSearch()">🔍</button>
+      <div class="search-results" id="search-results" style="display:none;"></div>
+    </div>
+    <div class="map-pick-hint">Перемістіть карту — прицільний хрест вкаже точку</div>
+    <div class="map-pick-actions">
+      <button class="modal-btn cancel" style="flex:1" onclick="cancelMapPick()">Скасувати</button>
+      <button class="modal-btn confirm" style="flex:2" onclick="confirmMapPick()">✓ Підтвердити цю точку</button>
+    </div>
+  </div>
+
+  <!-- Crosshair -->
+  <div class="map-crosshair" id="map-crosshair">
+    <svg width="48" height="48" viewBox="0 0 48 48">
+      <line x1="24" y1="4"  x2="24" y2="18" stroke="#ff9100" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="24" y1="30" x2="24" y2="44" stroke="#ff9100" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="4"  y1="24" x2="18" y2="24" stroke="#ff9100" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="30" y1="24" x2="44" y2="24" stroke="#ff9100" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="24" cy="24" r="4" fill="none" stroke="#ff9100" stroke-width="2.5"/>
+      <circle cx="24" cy="24" r="1.5" fill="#ff9100"/>
+    </svg>
+  </div>
+
+  <!-- Coordinate readout -->
+  <div class="map-coord-readout" id="map-coord-readout"></div>
+
   <div class="map-controls">
+    <button class="map-ctrl-btn" id="btn-map-pick-mode" onclick="startMapPickMode()" title="Додати точку з карти" style="color:var(--o);border-color:rgba(255,145,0,0.4);">📍</button>
     <button class="map-ctrl-btn" onclick="centerOnDrivers()" title="Усі водії">⊙</button>
     <button class="map-ctrl-btn" onclick="map.zoomIn()" title="Наблизити">+</button>
     <button class="map-ctrl-btn" onclick="map.zoomOut()" title="Віддалити">−</button>
@@ -786,6 +987,41 @@ body {
     </div>
     <div class="modal-actions" id="modal-driver-delete" style="display:none">
       <button class="modal-btn danger" onclick="deleteDriver()">Видалити водія</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL: ODOMETER / WAYPOINT
+══════════════════════════════════ -->
+<div class="modal-bg" id="modal-odo">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📍 Додати точку зупинки</div>
+
+    <div class="form-group">
+      <div class="form-label">Показання спідометра</div>
+      <div class="odo-input-wrap">
+        <input type="number" id="inp-odo" inputmode="numeric" placeholder="Наприклад: 123456" min="0" max="9999999" oninput="onOdoInput()"/>
+        <span class="odo-unit">км</span>
+      </div>
+      <div class="odo-prev-hint" id="odo-prev-hint"></div>
+      <div id="odo-diff-wrap" style="text-align:center;display:none;">
+        <div class="odo-diff-badge">
+          <span>+</span><span id="odo-diff-val">0</span><span>км від попередньої точки</span>
+        </div>
+      </div>
+      <div class="odo-warn" id="odo-warn">⚠️ Значення менше попереднього показання</div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:6px;">
+      <div class="form-label">Примітка (необов'язково)</div>
+      <input class="form-input" id="inp-wp-note" type="text" placeholder="Наприклад: заправка, зустріч..." maxlength="60" autocomplete="off"/>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal('modal-odo')">Скасувати</button>
+      <button class="modal-btn confirm" id="btn-odo-save" onclick="saveWaypointWithOdo()">Зберегти точку</button>
     </div>
   </div>
 </div>
@@ -891,6 +1127,155 @@ function updateDriverOnMap(driver, latLng) {
   layer.marker.setIcon(makeDriverIcon(driver));
 }
 
+// ══════════════════════════════════════
+// MAP PICK MODE — add waypoint from map
+// ══════════════════════════════════════
+let _pickDriverId = null;
+let _pickMoveHandler = null;
+let _pendingMapPickOdo = null;
+
+function openMapPickForDriver(driverId) {
+  const driver = state.drivers.find(d => d.id === driverId);
+  if (!driver || driver.status !== 'tracking') return;
+  _pickDriverId = driverId;
+  switchView('map');
+  if (!mapInited) initMap();
+  setTimeout(() => activateMapPickMode(driver), 200);
+}
+
+function startMapPickMode() {
+  // Called from map 📍 button — pick active tracking driver or show selector
+  const trackingDrivers = state.drivers.filter(d => d.status === 'tracking');
+  if (!trackingDrivers.length) { toast('Немає активних поїздок. Спочатку натисніть ▶ Старт', 'error'); return; }
+  if (trackingDrivers.length === 1) {
+    _pickDriverId = trackingDrivers[0].id;
+    activateMapPickMode(trackingDrivers[0]);
+  } else {
+    // Show driver picker toast
+    toast('Оберіть водія кнопкою 🗺 на картці', 'info');
+    switchView('drivers');
+  }
+}
+
+function activateMapPickMode(driver) {
+  document.getElementById('pick-driver-name').textContent = driver.name;
+  document.getElementById('map-pick-bar').classList.add('active');
+  document.getElementById('map-crosshair').classList.add('active');
+  document.getElementById('map-coord-readout').classList.add('active');
+  document.getElementById('btn-map-pick-mode').style.background = 'rgba(255,145,0,0.2)';
+
+  // Center on driver's last known position
+  if (driver._lastPos) {
+    map.setView(driver._lastPos, 16, { animate: true });
+  }
+
+  // Update coordinate readout on map move
+  _pickMoveHandler = () => {
+    const c = map.getCenter();
+    document.getElementById('map-coord-readout').textContent =
+      `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
+  };
+  map.on('move', _pickMoveHandler);
+  _pickMoveHandler(); // initial call
+}
+
+function cancelMapPick() {
+  _deactivatePickMode();
+  _pendingMapPickOdo = null;
+  toast('Скасовано', 'info');
+}
+
+function _deactivatePickMode() {
+  document.getElementById('map-pick-bar').classList.remove('active');
+  document.getElementById('map-crosshair').classList.remove('active');
+  document.getElementById('map-coord-readout').classList.remove('active');
+  document.getElementById('btn-map-pick-mode').style.background = '';
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('inp-geo-search').value = '';
+  if (_pickMoveHandler) { map.off('move', _pickMoveHandler); _pickMoveHandler = null; }
+}
+
+function confirmMapPick() {
+  const driver = state.drivers.find(d => d.id === _pickDriverId);
+  if (!driver) { cancelMapPick(); return; }
+
+  const center = map.getCenter();
+  const lat = center.lat;
+  const lng = center.lng;
+
+  // Temporarily override _lastPos to map center, open odo modal
+  driver._mapPickPos = [lat, lng];
+  _deactivatePickMode();
+
+  // Open odometer modal with map-picked position
+  _odoDriverId = _pickDriverId;
+  const prevOdo = getLastOdo(driver);
+  const inp = document.getElementById('inp-odo');
+  inp.value = '';
+  document.getElementById('inp-wp-note').value = '';
+  document.getElementById('odo-diff-wrap').style.display = 'none';
+  document.getElementById('odo-warn').style.display = 'none';
+  document.getElementById('odo-prev-hint').textContent = prevOdo !== null
+    ? `Попереднє показання: ${prevOdo.toLocaleString('uk-UA')} км`
+    : `Точка з карти: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+  // Change modal title to indicate map source
+  document.querySelector('#modal-odo .modal-title').textContent = '🗺 Точка з карти';
+  openModal('modal-odo');
+  setTimeout(() => inp.focus(), 300);
+}
+
+// ── GEOCODER SEARCH (Nominatim / OpenStreetMap — free, no key) ──
+let _searchTimeout = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('inp-geo-search');
+  if (inp) {
+    inp.addEventListener('input', () => {
+      clearTimeout(_searchTimeout);
+      const q = inp.value.trim();
+      if (q.length < 3) { document.getElementById('search-results').style.display = 'none'; return; }
+      _searchTimeout = setTimeout(() => geoSearch(), 600);
+    });
+  }
+});
+
+async function geoSearch() {
+  const q = document.getElementById('inp-geo-search').value.trim();
+  if (!q) return;
+  const resultsEl = document.getElementById('search-results');
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--txt3)">Пошук...</div>';
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=uk`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'uk' } });
+    const data = await res.json();
+
+    if (!data.length) {
+      resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--txt3)">Нічого не знайдено</div>';
+      return;
+    }
+
+    resultsEl.innerHTML = data.map((item, i) => {
+      const name = item.display_name.split(',').slice(0, 3).join(', ');
+      const type = item.type || item.class || '';
+      return `<div class="search-result-item" onclick="selectSearchResult(${item.lat}, ${item.lon}, this)">
+        <strong>${name}</strong>${type ? ` <span style="color:var(--txt3);font-size:10px;">${type}</span>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--r)">Помилка пошуку. Перевірте інтернет.</div>';
+  }
+}
+
+function selectSearchResult(lat, lng, el) {
+  map.setView([parseFloat(lat), parseFloat(lng)], 17, { animate: true });
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('inp-geo-search').value = el.querySelector('strong').textContent;
+  _haptic('light');
+}
+
 function centerOnDrivers() {
   if (!mapInited) return;
   const activeDrivers = state.drivers.filter(d => d._coords && d._coords.length > 0);
@@ -989,6 +1374,11 @@ function stopTracking(driverId) {
 
   // Save trip
   if (driver._coords && driver._coords.length > 1) {
+    const wpsWithOdo = (driver.waypoints || []).filter(w => w.odo != null);
+    const odoStart = wpsWithOdo.length ? wpsWithOdo[0].odo : null;
+    const odoEnd   = wpsWithOdo.length ? wpsWithOdo[wpsWithOdo.length-1].odo : null;
+    const odoTotal = (odoStart !== null && odoEnd !== null) ? (odoEnd - odoStart) : null;
+
     const trip = {
       id: Date.now(),
       driverId: driver.id,
@@ -1002,6 +1392,8 @@ function stopTracking(driverId) {
       endTs: Date.now(),
       date: new Date().toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }),
       coords: [...driver._coords],
+      waypoints: JSON.parse(JSON.stringify(driver.waypoints || [])),
+      odoStart, odoEnd, odoTotal,
     };
     state.trips.unshift(trip);
   }
@@ -1024,22 +1416,112 @@ function stopTracking(driverId) {
   toast(`■ ${driver.name} — поїздку завершено`, 'info');
 }
 
+let _odoDriverId = null;
+
 function addWaypoint(driverId) {
   const driver = state.drivers.find(d => d.id === driverId);
-  if (!driver || !driver._lastPos) { toast('GPS позиція ще не визначена', 'error'); return; }
+  if (!driver || driver.status !== 'tracking') return;
+  if (!driver._lastPos) { toast('GPS позиція ще не визначена', 'error'); return; }
+
+  _odoDriverId = driverId;
+
+  // Pre-fill last odometer + 1 as hint
+  const prevOdo = getLastOdo(driver);
+  const inp = document.getElementById('inp-odo');
+  inp.value = '';
+  document.getElementById('inp-wp-note').value = '';
+  document.getElementById('odo-diff-wrap').style.display = 'none';
+  document.getElementById('odo-warn').style.display = 'none';
+
+  if (prevOdo !== null) {
+    document.getElementById('odo-prev-hint').textContent = `Попереднє показання: ${prevOdo.toLocaleString('uk-UA')} км`;
+  } else {
+    document.getElementById('odo-prev-hint').textContent = 'Введіть поточне показання спідометра';
+  }
+
+  openModal('modal-odo');
+  setTimeout(() => inp.focus(), 300);
+}
+
+function getLastOdo(driver) {
+  const wps = (driver.waypoints || []).filter(w => w.odo != null);
+  return wps.length ? wps[wps.length - 1].odo : null;
+}
+
+function onOdoInput() {
+  const val = parseFloat(document.getElementById('inp-odo').value);
+  const driver = state.drivers.find(d => d.id === _odoDriverId);
+  if (!driver) return;
+
+  const prevOdo = getLastOdo(driver);
+  const diffWrap = document.getElementById('odo-diff-wrap');
+  const warn = document.getElementById('odo-warn');
+
+  if (!isNaN(val) && val > 0) {
+    if (prevOdo !== null) {
+      const diff = val - prevOdo;
+      if (diff < 0) {
+        warn.style.display = 'block';
+        diffWrap.style.display = 'none';
+      } else {
+        warn.style.display = 'none';
+        diffWrap.style.display = 'block';
+        document.getElementById('odo-diff-val').textContent = diff.toFixed(1);
+      }
+    } else {
+      warn.style.display = 'none';
+      diffWrap.style.display = 'none';
+    }
+  } else {
+    warn.style.display = 'none';
+    diffWrap.style.display = 'none';
+  }
+}
+
+function saveWaypointWithOdo() {
+  const driver = state.drivers.find(d => d.id === _odoDriverId);
+  if (!driver) return;
+
+  // Use map-picked position if available, else GPS
+  const pos = driver._mapPickPos || driver._lastPos;
+  driver._mapPickPos = null;
+  document.querySelector('#modal-odo .modal-title').textContent = '📍 Додати точку зупинки';
+
+  if (!pos) { toast('Немає координат для точки', 'error'); return; }
+
+  const odoRaw = document.getElementById('inp-odo').value.trim();
+  const note = document.getElementById('inp-wp-note').value.trim();
+  const odo = odoRaw !== '' ? parseFloat(odoRaw) : null;
+
+  // Validate odometer
+  if (odo !== null) {
+    const prevOdo = getLastOdo(driver);
+    if (isNaN(odo) || odo < 0) { toast('Невірне значення спідометра', 'error'); return; }
+    if (prevOdo !== null && odo < prevOdo) {
+      toast('Спідометр не може бути менше попереднього!', 'error'); return;
+    }
+  }
+
+  const wps = driver.waypoints || [];
+  const prevOdo = getLastOdo(driver);
+  const odoDiff = (odo !== null && prevOdo !== null) ? (odo - prevOdo) : null;
+  const isMapPick = !driver._lastPos || pos !== driver._lastPos;
 
   const wp = {
     id: Date.now(),
-    lat: driver._lastPos[0],
-    lng: driver._lastPos[1],
+    lat: pos[0],
+    lng: pos[1],
     time: new Date().toLocaleTimeString('uk-UA'),
-    distFromStart: (driver.distance || 0).toFixed(2),
+    distFromStart: (driver.distance || 0).toFixed(3),
+    note: note || null,
+    odo: odo,
+    odoDiff: odoDiff,
+    source: isMapPick ? 'map' : 'gps',
   };
 
-  // Dist from prev waypoint
-  const wps = driver.waypoints || [];
+  // GPS-based dist from prev
   if (wps.length > 0) {
-    const prev = wps[wps.length-1];
+    const prev = wps[wps.length - 1];
     wp.distFromPrev = haversine(prev.lat, prev.lng, wp.lat, wp.lng).toFixed(3);
   } else {
     wp.distFromPrev = '0';
@@ -1047,21 +1529,35 @@ function addWaypoint(driverId) {
 
   driver.waypoints = [...wps, wp];
   _haptic('light');
+  closeModal('modal-odo');
 
   // Marker on map
   if (mapInited) {
     const n = driver.waypoints.length;
+    const popupLines = [
+      `<b>${driver.name} · Точка ${n}</b>`,
+      `🕐 ${wp.time}`,
+      wp.source === 'map' ? `🗺 <i style="color:#ff9100">Додано з карти</i>` : `📡 GPS-точка`,
+      odo !== null ? `🔢 Спідометр: <b>${odo.toLocaleString('uk-UA')} км</b>` : '',
+      odoDiff !== null ? `📏 Пробіг від попередньої: <b>${odoDiff.toFixed(1)} км</b>` : '',
+      `Від старту: ${wp.distFromStart} км`,
+      note ? `💬 ${note}` : '',
+    ].filter(Boolean).join('<br>');
+
     L.marker([wp.lat, wp.lng], {
       icon: L.divIcon({
-        className:'',
-        html:`<div style="background:${driver.color};color:#060810;font-family:DM Mono,monospace;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;box-shadow:0 0 8px ${driver.color}80;white-space:nowrap;">P${n}</div>`,
-        iconAnchor:[0,10],
+        className: '',
+        html: `<div style="background:${wp.source==='map'?'#ff9100':driver.color};color:#060810;font-family:DM Mono,monospace;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;box-shadow:0 0 8px ${wp.source==='map'?'#ff910080':driver.color+'80'};white-space:nowrap;">${wp.source==='map'?'🗺':''}P${n}${odo !== null ? ' · ' + odo.toLocaleString('uk-UA') : ''}</div>`,
+        iconAnchor: [0, 10],
       })
-    }).addTo(map).bindPopup(`<b>${driver.name} · Точка ${n}</b><br>${wp.time}<br>+${wp.distFromStart} км від старту<br>+${wp.distFromPrev} км від попередньої`);
+    }).addTo(map).bindPopup(popupLines);
   }
 
   renderDrivers();
-  toast(`📍 ${driver.name} — точка ${driver.waypoints.length}`, 'success');
+  const msg = odo !== null
+    ? `📍 Точка ${driver.waypoints.length} · ${odo.toLocaleString('uk-UA')} км${odoDiff !== null ? ' (+' + odoDiff.toFixed(1) + ' км)' : ''}`
+    : `📍 ${driver.name} — точка ${driver.waypoints.length}`;
+  toast(msg, 'success');
 }
 
 // ══════════════════════════════════════
@@ -1080,6 +1576,27 @@ function renderDrivers() {
     const initials = d.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
     const isTracking = d.status === 'tracking';
     const secs = d._tripSeconds || 0;
+
+    // Odometer summary
+    const wpsWithOdo = (d.waypoints || []).filter(w => w.odo != null);
+    const lastOdo = wpsWithOdo.length ? wpsWithOdo[wpsWithOdo.length-1].odo : null;
+    const firstOdo = wpsWithOdo.length ? wpsWithOdo[0].odo : null;
+    const totalOdoDist = (wpsWithOdo.length >= 2)
+      ? (wpsWithOdo[wpsWithOdo.length-1].odo - wpsWithOdo[0].odo)
+      : null;
+
+    const odoBar = lastOdo !== null ? `
+      <div class="driver-odo-bar">
+        <div>
+          <div class="odo-meta">СПІДОМЕТР</div>
+          <div class="odo-val">📟 ${lastOdo.toLocaleString('uk-UA')} км</div>
+        </div>
+        ${totalOdoDist !== null ? `<div style="text-align:right;">
+          <div class="odo-meta">ПРОБІГ (точки)</div>
+          <div class="odo-val" style="color:var(--g)">+${totalOdoDist.toFixed(1)} км</div>
+        </div>` : ''}
+      </div>` : '';
+
     return `
     <div class="driver-card ${d.status}" data-id="${d.id}">
       <div class="driver-card-top">
@@ -1096,7 +1613,7 @@ function renderDrivers() {
       <div class="driver-stats">
         <div class="driver-stat">
           <div class="val" style="color:${d.color}">${(d.distance||0).toFixed(2)}</div>
-          <div class="lbl">км</div>
+          <div class="lbl">GPS км</div>
         </div>
         <div class="driver-stat">
           <div class="val" style="color:var(--b)">${d.speed||0}</div>
@@ -1107,13 +1624,15 @@ function renderDrivers() {
           <div class="lbl">час</div>
         </div>
       </div>
+      ${odoBar}
       <div class="driver-actions">
         ${!isTracking
           ? `<button class="da-btn start" onclick="startTracking(${d.id})">▶ Старт</button>`
           : `<button class="da-btn stop" onclick="stopTracking(${d.id})">■ Стоп</button>`
         }
-        <button class="da-btn waypoint" onclick="addWaypoint(${d.id})" ${!isTracking?'disabled':''}>+ Точка</button>
-        <button class="da-btn map" onclick="focusDriverOnMap(${d.id})">⊙ Карта</button>
+        <button class="da-btn waypoint" onclick="addWaypoint(${d.id})" ${!isTracking?'disabled':''}>📍 Точка</button>
+        <button class="da-btn waypoint" onclick="openMapPickForDriver(${d.id})" ${!isTracking?'disabled':''} style="color:var(--o);border-color:rgba(255,145,0,0.35);" title="Додати точку з карти">🗺</button>
+        <button class="da-btn map" onclick="focusDriverOnMap(${d.id})">⊙</button>
         <button class="da-btn map" onclick="openEditDriver(${d.id})" style="flex:0;padding:8px 10px;">✎</button>
       </div>
     </div>`;
@@ -1243,7 +1762,15 @@ function renderHistory() {
     return;
   }
 
-  el.innerHTML = trips.map(t => `
+  el.innerHTML = trips.map(t => {
+    const odoRow = t.odoTotal !== null && t.odoTotal !== undefined
+      ? `<div class="trip-row">
+          <div class="trip-cell"><div class="tc-val" style="color:var(--b)">${t.odoStart?.toLocaleString('uk-UA') ?? '—'}</div><div class="tc-lbl">Старт спідометр</div></div>
+          <div class="trip-cell"><div class="tc-val" style="color:var(--b)">${t.odoEnd?.toLocaleString('uk-UA') ?? '—'}</div><div class="tc-lbl">Фініш спідометр</div></div>
+          <div class="trip-cell"><div class="tc-val" style="color:var(--g)">+${t.odoTotal.toFixed(1)}</div><div class="tc-lbl">Пробіг спідом. км</div></div>
+        </div>`
+      : '';
+    return `
     <div class="trip-card" onclick="showTripOnMap(${t.id})">
       <div class="trip-card-top">
         <div class="trip-color-bar" style="background:${t.color}"></div>
@@ -1251,14 +1778,16 @@ function renderHistory() {
           <div class="trip-driver">${t.driverName}</div>
           <div class="trip-date">${t.vehicle ? t.vehicle + ' · ' : ''}${t.date}</div>
         </div>
-        <div class="trip-dist" style="color:${t.color}">${t.distance}<span>км</span></div>
+        <div class="trip-dist" style="color:${t.color}">${t.distance}<span>GPS км</span></div>
       </div>
       <div class="trip-row">
         <div class="trip-cell"><div class="tc-val">${t.duration}</div><div class="tc-lbl">Тривалість</div></div>
         <div class="trip-cell"><div class="tc-val">${t.waypointCount}</div><div class="tc-lbl">Зупинок</div></div>
         <div class="trip-cell"><div class="tc-val">${speedEst(t.distance, t.duration)}</div><div class="tc-lbl">сер. км/год</div></div>
       </div>
-    </div>`).join('');
+      ${odoRow}
+    </div>`;
+  }).join('');
 }
 
 function filterHistory(el, filter) {
@@ -1289,7 +1818,9 @@ function exportToExcel() {
 
   // ── SHEET 1: Зведення поїздок ──
   const summaryHeaders = [
-    'Дата та час', 'Водій', 'Транспорт', 'Відстань (км)',
+    'Дата та час', 'Водій', 'Транспорт',
+    'Відстань GPS (км)', 'Пробіг спідометр (км)',
+    'Спідометр старт', 'Спідометр фініш',
     'Тривалість', 'Зупинок', 'Поч. координати', 'Кін. координати',
   ];
   const summaryRows = state.trips.map(t => {
@@ -1300,6 +1831,9 @@ function exportToExcel() {
       t.driverName,
       t.vehicle || '—',
       parseFloat(t.distance),
+      t.odoTotal != null ? parseFloat(t.odoTotal.toFixed(1)) : '—',
+      t.odoStart != null ? t.odoStart : '—',
+      t.odoEnd   != null ? t.odoEnd   : '—',
       t.duration,
       t.waypointCount,
       start,
@@ -1311,7 +1845,7 @@ function exportToExcel() {
 
   // Column widths
   summaryWs['!cols'] = [
-    {wch:20},{wch:22},{wch:24},{wch:16},{wch:14},{wch:10},{wch:26},{wch:26},
+    {wch:20},{wch:22},{wch:24},{wch:18},{wch:22},{wch:18},{wch:18},{wch:14},{wch:10},{wch:26},{wch:26},
   ];
 
   // Header style
@@ -1406,7 +1940,65 @@ function exportToExcel() {
 
   XLSX.utils.book_append_sheet(wb, driverWs, 'По водіях');
 
-  // ── SHEET 3: Точки маршрутів ──
+  // ── SHEET 3: Деталі спідометра по точках ──
+  const odoHeaders = [
+    'Поїздка (дата)', 'Водій', 'Транспорт', '№ точки', 'Час',
+    'Спідометр (км)', 'Пробіг від попередньої (км)', 'GPS від старту (км)',
+    'Джерело точки', 'Примітка', 'Широта', 'Довгота',
+  ];
+  const odoRows = [];
+
+  state.trips.forEach(t => {
+    if (!t.waypoints || !t.waypoints.length) return;
+    t.waypoints.forEach((wp, i) => {
+      odoRows.push([
+        t.date,
+        t.driverName,
+        t.vehicle || '—',
+        i + 1,
+        wp.time || '—',
+        wp.odo != null ? wp.odo : '—',
+        wp.odoDiff != null ? parseFloat(wp.odoDiff.toFixed(1)) : '—',
+        parseFloat(wp.distFromStart || 0),
+        wp.source === 'map' ? 'З карти' : 'GPS',
+        wp.note || '',
+        wp.lat ? parseFloat(wp.lat.toFixed(6)) : '—',
+        wp.lng ? parseFloat(wp.lng.toFixed(6)) : '—',
+      ]);
+    });
+  });
+
+  if (odoRows.length > 0) {
+    const odoWs = XLSX.utils.aoa_to_sheet([odoHeaders, ...odoRows]);
+    odoWs['!cols'] = [{wch:20},{wch:20},{wch:22},{wch:8},{wch:10},{wch:18},{wch:24},{wch:20},{wch:14},{wch:22},{wch:14},{wch:14}];
+    odoHeaders.forEach((_, i) => {
+      const cell = odoWs[XLSX.utils.encode_cell({r:0, c:i})];
+      if (cell) cell.s = {
+        font: { bold: true, name: 'Arial', sz: 11, color: { rgb: 'FFFFFF' } },
+        fill: { patternType: 'solid', fgColor: { rgb: '1A2A50' } },
+        alignment: { horizontal: 'center' },
+        border: { bottom: { style: 'thin', color: { rgb: '448AFF' } } },
+      };
+    });
+    odoRows.forEach((row, ri) => {
+      row.forEach((_, ci) => {
+        const cell = odoWs[XLSX.utils.encode_cell({r: ri+1, c: ci})];
+        if (!cell) return;
+        cell.s = {
+          font: { name: 'Arial', sz: 10 },
+          fill: { patternType: 'solid', fgColor: { rgb: ri%2===0 ? '0D1020' : '141828' } },
+          alignment: { horizontal: [5,6,7].includes(ci) ? 'right' : 'left' },
+        };
+        // number format for odometer columns
+        if (ci === 5 && typeof row[ci] === 'number') cell.z = '#,##0" км"';
+        if (ci === 6 && typeof row[ci] === 'number') cell.z = '+#,##0.0" км"';
+        if (ci === 7 && typeof row[ci] === 'number') cell.z = '#,##0.000" км"';
+      });
+    });
+    XLSX.utils.book_append_sheet(wb, odoWs, 'Спідометр — точки');
+  }
+
+  // ── SHEET 4: Точки маршрутів ──
   const wpHeaders = ['Поїздка (дата)', 'Водій', '№ точки', 'Широта', 'Довгота', 'Час', 'Від старту (км)', 'Від попередньої (км)'];
   const wpRows = [];
 
@@ -1434,7 +2026,7 @@ function exportToExcel() {
         border: { bottom: { style: 'thin', color: { rgb: 'FF9100' } } },
       };
     });
-    XLSX.utils.book_append_sheet(wb, wpWs, 'Точки маршрутів');
+    XLSX.utils.book_append_sheet(wb, wpWs, 'GPS координати');
   }
 
   // ── Generate filename ──
