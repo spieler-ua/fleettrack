@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FleetTrack">
+<meta name="theme-color" content="#060810">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>FleetTrack</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+/* ─── TOKENS ─── */
+:root {
+  --bg0: #060810;
+  --bg1: #0d1020;
+  --bg2: #141828;
+  --line: #1d2236;
+  --line2: #252a40;
+  --g: #00e676;        /* green accent */
+  --b: #448aff;        /* blue */
+  --o: #ff9100;        /* orange */
+  --r: #ff5252;        /* red */
+  --txt: #dce3f5;
+  --txt2: #6b728f;
+  --txt3: #3d4560;
+  --mono: 'DM Mono', monospace;
+  --sans: 'Syne', sans-serif;
+  --rad: 10px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+/* ─── RESET ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overscroll-behavior: none; }
+
+body {
+  background: var(--bg0);
+  color: var(--txt);
+  font-family: var(--mono);
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 2px; }
+
+/* ══════════════════════════════════════
+   VIEWS — single-page navigation
+══════════════════════════════════════ */
+.view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+.view.active { display: flex; }
+
+/* ─── STATUS BAR ─── */
+.statusbar {
+  height: calc(44px + var(--safe-top));
+  padding-top: var(--safe-top);
+  padding: var(--safe-top) 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  z-index: 100;
+}
+.statusbar .wordmark {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--g);
+  letter-spacing: -0.5px;
+  flex: 1;
+}
+.statusbar .wordmark span { color: var(--txt2); font-weight: 400; }
+
+/* ─── BOTTOM NAV ─── */
+.bottomnav {
+  height: calc(56px + var(--safe-bot));
+  padding-bottom: var(--safe-bot);
+  background: var(--bg1);
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  z-index: 100;
+}
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  background: transparent;
+  color: var(--txt3);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s;
+  position: relative;
+}
+.nav-btn svg { width: 20px; height: 20px; transition: transform 0.2s; }
+.nav-btn.active { color: var(--g); }
+.nav-btn.active svg { transform: scale(1.1); }
+.nav-btn::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 2px;
+  background: var(--g);
+  border-radius: 0 0 2px 2px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.nav-btn.active::after { opacity: 1; }
+
+/* ─── BADGE ─── */
+.badge {
+  position: absolute;
+  top: 6px; right: 18%;
+  min-width: 16px; height: 16px;
+  background: var(--r);
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 3px;
+}
+
+/* ══════════════════════════════════════
+   VIEW: DRIVERS
+══════════════════════════════════════ */
+#view-drivers {
+  overflow-y: auto;
+  gap: 0;
+}
+
+.drivers-header {
+  padding: 20px 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.drivers-header h2 {
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 800;
+}
+.drivers-header h2 span { color: var(--txt2); font-weight: 400; font-size: 14px; }
+
+.btn-add-driver {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--g);
+  color: var(--bg0);
+  border: none;
+  font-size: 22px;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 16px rgba(0,230,118,0.35);
+  transition: box-shadow 0.2s, transform 0.1s;
+}
+.btn-add-driver:active { transform: scale(0.95); }
+
+.driver-card {
+  margin: 0 16px 10px;
+  background: var(--bg1);
+  border: 1px solid var(--line);
+  border-radius: var(--rad);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.driver-card.tracking { border-color: var(--g); box-shadow: 0 0 0 1px var(--g) inset; }
+.driver-card.paused { border-color: var(--o); }
+
+.driver-card-top {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.driver-avatar {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 16px;
+  flex-shrink: 0;
+  position: relative;
+}
+.driver-avatar .pulse-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0;
+  animation: pulse-ring 1.8s ease-out infinite;
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+.driver-card.tracking .pulse-ring { opacity: 1; }
+
+.driver-info { flex: 1; min-width: 0; }
+.driver-name {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.driver-vehicle {
+  font-size: 11px;
+  color: var(--txt2);
+  margin-top: 1px;
+}
+
+.driver-status {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.driver-status.idle { background: var(--bg2); color: var(--txt3); }
+.driver-status.tracking { background: rgba(0,230,118,0.12); color: var(--g); }
+.driver-status.paused { background: rgba(255,145,0,0.12); color: var(--o); }
+
+.driver-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--line);
+}
+.driver-stat {
+  padding: 10px;
+  text-align: center;
+  border-right: 1px solid var(--line);
+}
+.driver-stat:last-child { border-right: none; }
+.driver-stat .val {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 15px;
+}
+.driver-stat .lbl {
+  font-size: 9px;
+  color: var(--txt3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 1px;
+}
+
+.driver-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.da-btn {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line2);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.da-btn.start { color: var(--g); border-color: rgba(0,230,118,0.35); }
+.da-btn.start:active { background: rgba(0,230,118,0.1); }
+.da-btn.stop { color: var(--r); border-color: rgba(255,82,82,0.35); }
+.da-btn.stop:active { background: rgba(255,82,82,0.1); }
+.da-btn.waypoint { color: var(--b); border-color: rgba(68,138,255,0.35); }
+.da-btn.waypoint:active { background: rgba(68,138,255,0.1); }
+.da-btn.map { color: var(--txt2); border-color: var(--line2); }
+.da-btn.map:active { background: var(--bg2); }
+.da-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ══════════════════════════════════════
+   VIEW: MAP
+══════════════════════════════════════ */
+#view-map {
+  position: relative;
+}
+#leaflet-map {
+  flex: 1;
+  z-index: 1;
+}
+
+.map-controls {
+  position: absolute;
+  top: 12px; right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 500;
+}
+.map-ctrl-btn {
+  width: 38px; height: 38px;
+  background: var(--bg1);
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  color: var(--txt);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(8px);
+  transition: background 0.15s;
+}
+.map-ctrl-btn:active { background: var(--bg2); }
+
+.map-legend {
+  position: absolute;
+  bottom: 12px; left: 12px;
+  background: rgba(13,16,32,0.9);
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  z-index: 500;
+  backdrop-filter: blur(8px);
+  min-width: 140px;
+}
+.legend-title {
+  font-size: 9px;
+  color: var(--txt3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 5px;
+  font-size: 11px;
+  color: var(--txt2);
+}
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════
+   VIEW: HISTORY
+══════════════════════════════════════ */
+#view-history { overflow-y: auto; }
+
+.history-header {
+  padding: 20px 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.history-header h2 {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 22px;
+}
+
+.filter-chips {
+  display: flex;
+  gap: 6px;
+  padding: 0 16px 12px;
+  overflow-x: auto;
+}
+.filter-chips::-webkit-scrollbar { display: none; }
+.chip {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--line2);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--txt2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.chip.active { background: var(--g); color: var(--bg0); border-color: var(--g); font-weight: 500; }
+
+.trip-card {
+  margin: 0 16px 10px;
+  background: var(--bg1);
+  border: 1px solid var(--line);
+  border-radius: var(--rad);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.1s;
+}
+.trip-card:active { transform: scale(0.99); border-color: var(--line2); }
+
+.trip-card-top {
+  padding: 12px 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.trip-color-bar {
+  width: 3px;
+  align-self: stretch;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.trip-meta { flex: 1; min-width: 0; }
+.trip-driver {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 14px;
+}
+.trip-date { font-size: 11px; color: var(--txt2); margin-top: 2px; }
+
+.trip-dist {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 20px;
+  text-align: right;
+}
+.trip-dist span { font-size: 11px; font-weight: 400; color: var(--txt2); display: block; }
+
+.trip-row {
+  display: flex;
+  border-top: 1px solid var(--line);
+}
+.trip-cell {
+  flex: 1;
+  padding: 8px 12px;
+  border-right: 1px solid var(--line);
+  font-size: 11px;
+}
+.trip-cell:last-child { border-right: none; }
+.trip-cell .tc-val { font-weight: 500; color: var(--txt); }
+.trip-cell .tc-lbl { color: var(--txt3); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--txt3);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.empty-state .big { font-size: 36px; margin-bottom: 12px; }
+
+/* ══════════════════════════════════════
+   MODAL SYSTEM
+══════════════════════════════════════ */
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 900;
+  display: flex;
+  align-items: flex-end;
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+.modal-bg.open { opacity: 1; pointer-events: all; }
+
+.modal-sheet {
+  width: 100%;
+  background: var(--bg1);
+  border-top: 1px solid var(--line2);
+  border-radius: 18px 18px 0 0;
+  padding: 0 0 calc(16px + var(--safe-bot));
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.modal-bg.open .modal-sheet { transform: translateY(0); }
+
+.modal-handle {
+  width: 36px; height: 4px;
+  background: var(--line2);
+  border-radius: 2px;
+  margin: 10px auto 18px;
+}
+.modal-title {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 18px;
+  padding: 0 20px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.form-group { padding: 14px 20px 0; }
+.form-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--txt2);
+  margin-bottom: 6px;
+}
+.form-input {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  padding: 11px 14px;
+  color: var(--txt);
+  font-family: var(--mono);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.form-input:focus { border-color: var(--g); }
+.form-input::placeholder { color: var(--txt3); }
+
+.color-picker {
+  display: flex;
+  gap: 8px;
+  padding: 14px 20px 0;
+}
+.color-swatch {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.color-swatch.selected { border-color: #fff; transform: scale(1.1); }
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  padding: 20px 20px 0;
+}
+.modal-btn {
+  flex: 1;
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.modal-btn:active { transform: scale(0.97); opacity: 0.85; }
+.modal-btn.confirm { background: var(--g); color: var(--bg0); font-weight: 700; }
+.modal-btn.cancel { background: var(--bg2); color: var(--txt2); }
+.modal-btn.danger { background: rgba(255,82,82,0.15); color: var(--r); border: 1px solid rgba(255,82,82,0.3); }
+
+/* ══════════════════════════════════════
+   TOAST
+══════════════════════════════════════ */
+#toast-container {
+  position: fixed;
+  top: calc(56px + var(--safe-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  pointer-events: none;
+}
+.toast {
+  background: var(--bg2);
+  border: 1px solid var(--line2);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--txt);
+  white-space: nowrap;
+  animation: toast-in 0.25s ease, toast-out 0.25s ease 1.8s forwards;
+}
+.toast.success { border-color: rgba(0,230,118,0.4); color: var(--g); }
+.toast.error { border-color: rgba(255,82,82,0.4); color: var(--r); }
+.toast.info { border-color: rgba(68,138,255,0.4); color: var(--b); }
+
+@keyframes toast-in { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+@keyframes toast-out { to { opacity:0; transform:translateY(-8px); } }
+
+/* ══════════════════════════════════════
+   INSTALL PROMPT
+══════════════════════════════════════ */
+#install-banner {
+  background: linear-gradient(135deg, rgba(0,230,118,0.1), rgba(68,138,255,0.1));
+  border: 1px solid rgba(0,230,118,0.25);
+  border-radius: var(--rad);
+  margin: 12px 16px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+#install-banner.hidden { display: none; }
+.install-text { flex: 1; font-size: 12px; color: var(--txt2); line-height: 1.4; }
+.install-text strong { color: var(--g); font-weight: 700; }
+.install-btn {
+  background: var(--g);
+  color: var(--bg0);
+  border: none;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.install-close {
+  background: transparent;
+  border: none;
+  color: var(--txt3);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 0 0 6px;
+  line-height: 1;
+}
+
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(0,230,118,0.1);
+  border: 1px solid rgba(0,230,118,0.3);
+  border-radius: 8px;
+  color: var(--g);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-export:active { background: rgba(0,230,118,0.2); transform: scale(0.97); }
+.btn-export svg { width: 15px; height: 15px; flex-shrink: 0; }
+.btn-export:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.export-sheet-banner {
+  margin: 0 16px 12px;
+  background: rgba(0,230,118,0.06);
+  border: 1px solid rgba(0,230,118,0.18);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.export-sheet-banner span { font-size: 11px; color: var(--txt2); }
+.export-sheet-banner strong { color: var(--g); }
+.leaflet-container { background: var(--bg0) !important; }
+.leaflet-tile { filter: brightness(0.85) saturate(0.9); }
+</style>
+</head>
+<body>
+
+<!-- ── TOAST LAYER ── -->
+<div id="toast-container"></div>
+
+<!-- ══════════════════════════════════
+     VIEW: DRIVERS
+══════════════════════════════════ -->
+<div class="view active" id="view-drivers">
+  <div class="statusbar">
+    <span class="wordmark">Fleet<span>Track</span></span>
+    <button class="btn-add-driver" onclick="openAddDriver()" aria-label="Додати водія">+</button>
+  </div>
+  <div id="install-banner" class="hidden">
+    <div class="install-text"><strong>Встановити як додаток</strong><br>Швидкий доступ з домашнього екрану</div>
+    <button class="install-btn" id="install-btn">Встановити</button>
+    <button class="install-close" onclick="dismissInstall()">×</button>
+  </div>
+  <div id="drivers-list" style="flex:1;overflow-y:auto;padding-bottom:8px;">
+    <!-- generated -->
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     VIEW: MAP
+══════════════════════════════════ -->
+<div class="view" id="view-map">
+  <div id="leaflet-map"></div>
+  <div class="map-controls">
+    <button class="map-ctrl-btn" onclick="centerOnDrivers()" title="Усі водії">⊙</button>
+    <button class="map-ctrl-btn" onclick="map.zoomIn()" title="Наблизити">+</button>
+    <button class="map-ctrl-btn" onclick="map.zoomOut()" title="Віддалити">−</button>
+  </div>
+  <div class="map-legend" id="map-legend"></div>
+</div>
+
+<!-- ══════════════════════════════════
+     VIEW: HISTORY
+══════════════════════════════════ -->
+<div class="view" id="view-history">
+  <div class="statusbar">
+    <span class="wordmark">Журнал<span> поїздок</span></span>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn-export" id="btn-export-xl" onclick="exportToExcel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+        Excel
+      </button>
+      <button class="map-ctrl-btn" style="position:static;width:32px;height:32px;font-size:14px;" onclick="clearHistory()" title="Очистити">🗑</button>
+    </div>
+  </div>
+  <div class="filter-chips" id="filter-chips">
+    <button class="chip active" data-filter="all" onclick="filterHistory(this,'all')">Всі</button>
+  </div>
+  <div id="history-list" style="flex:1;overflow-y:auto;padding-bottom:8px;"></div>
+</div>
+
+<!-- ── BOTTOM NAV ── -->
+<nav class="bottomnav">
+  <button class="nav-btn active" id="nav-drivers" onclick="switchView('drivers')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <circle cx="8" cy="7" r="3"/><path d="M3 21v-2a4 4 0 014-4h2"/><circle cx="17" cy="11" r="3"/><path d="M14 21v-1a3 3 0 016 0v1"/>
+    </svg>
+    Водії
+    <span class="badge" id="active-badge" style="display:none">0</span>
+  </button>
+  <button class="nav-btn" id="nav-map" onclick="switchView('map')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
+    </svg>
+    Карта
+  </button>
+  <button class="nav-btn" id="nav-history" onclick="switchView('history')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/>
+    </svg>
+    Журнал
+  </button>
+</nav>
+
+<!-- ══════════════════════════════════
+     MODALS
+══════════════════════════════════ -->
+<div class="modal-bg" id="modal-driver">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-driver-title">Новий водій</div>
+    <div class="form-group">
+      <div class="form-label">Ім'я водія</div>
+      <input class="form-input" id="inp-name" type="text" placeholder="Наприклад: Олег Коваль" maxlength="30" autocomplete="off"/>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Автомобіль / номер</div>
+      <input class="form-input" id="inp-vehicle" type="text" placeholder="Toyota Camry АА1234ВВ" maxlength="40" autocomplete="off"/>
+    </div>
+    <div class="form-group">
+      <div class="form-label">Колір на карті</div>
+    </div>
+    <div class="color-picker" id="color-picker"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal('modal-driver')">Скасувати</button>
+      <button class="modal-btn confirm" onclick="saveDriver()">Зберегти</button>
+    </div>
+    <div class="modal-actions" id="modal-driver-delete" style="display:none">
+      <button class="modal-btn danger" onclick="deleteDriver()">Видалити водія</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════
+// DATA LAYER (localStorage persistence)
+// ══════════════════════════════════════
+const STORAGE_KEY = 'fleettrack_v2';
+const COLORS = ['#00e676','#448aff','#ff9100','#ff5252','#e040fb','#00e5ff','#ffea00','#69f0ae'];
+
+let state = {
+  drivers: [],   // { id, name, vehicle, color, status:'idle|tracking|paused', distance, speed, accuracy, waypoints:[], tripStart }
+  trips: [],     // { id, driverId, driverName, color, distance, duration, waypointCount, startTs, endTs, coords }
+  _nextId: 1,
+};
+
+function loadState() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) { const p = JSON.parse(s); Object.assign(state, p); }
+  } catch(e) {}
+}
+function saveState() {
+  try {
+    // Don't persist huge coord arrays from active trips
+    const toSave = { ...state, drivers: state.drivers.map(d => ({...d, _coords: undefined})) };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════
+// MAP
+// ══════════════════════════════════════
+let map, mapInited = false;
+const driverLayers = {}; // driverId → { marker, polyline }
+
+function initMap() {
+  if (mapInited) return;
+  mapInited = true;
+  map = L.map('leaflet-map', { center: [50.45, 30.52], zoom: 12, zoomControl: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+    maxZoom: 19,
+  }).addTo(map);
+
+  // Draw existing tracked routes
+  state.drivers.forEach(d => {
+    if (d._coords && d._coords.length > 0) initDriverLayer(d);
+  });
+
+  renderLegend();
+}
+
+function initDriverLayer(driver) {
+  if (driverLayers[driver.id]) {
+    map.removeLayer(driverLayers[driver.id].polyline);
+    map.removeLayer(driverLayers[driver.id].marker);
+  }
+  const poly = L.polyline(driver._coords || [], {
+    color: driver.color, weight: 3, opacity: 0.8,
+  }).addTo(map);
+
+  const icon = makeDriverIcon(driver);
+  const pos = driver._coords && driver._coords.length ? driver._coords[driver._coords.length-1] : [50.45,30.52];
+  const marker = L.marker(pos, { icon, zIndexOffset: 500 }).addTo(map);
+  marker.bindPopup(`<b>${driver.name}</b><br>${driver.vehicle||''}`);
+  driverLayers[driver.id] = { polyline: poly, marker };
+}
+
+function makeDriverIcon(driver) {
+  const initials = driver.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      background:${driver.color};
+      color:#060810;
+      font-family:Syne,sans-serif;
+      font-weight:800;
+      font-size:11px;
+      width:30px;height:30px;
+      border-radius:50% 50% 50% 2px;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 0 12px ${driver.color}80;
+      border:2px solid rgba(255,255,255,0.2);
+      ${driver.status==='tracking'?'animation:marker-pulse 1.5s ease-in-out infinite;':''}
+    ">${initials}</div>
+    <style>@keyframes marker-pulse{0%,100%{box-shadow:0 0 8px ${driver.color}60}50%{box-shadow:0 0 20px ${driver.color}}}</style>`,
+    iconSize: [30,30],
+    iconAnchor: [15,15],
+  });
+}
+
+function updateDriverOnMap(driver, latLng) {
+  if (!mapInited) return;
+  if (!driverLayers[driver.id]) initDriverLayer(driver);
+  const layer = driverLayers[driver.id];
+  const coords = driver._coords || [];
+  layer.polyline.setLatLngs(coords);
+  layer.marker.setLatLng(latLng);
+  layer.marker.setIcon(makeDriverIcon(driver));
+}
+
+function centerOnDrivers() {
+  if (!mapInited) return;
+  const activeDrivers = state.drivers.filter(d => d._coords && d._coords.length > 0);
+  if (!activeDrivers.length) { toast('Немає активних маршрутів', 'info'); return; }
+  const bounds = [];
+  activeDrivers.forEach(d => bounds.push(...d._coords));
+  if (bounds.length > 0) map.fitBounds(L.latLngBounds(bounds), { padding: [30,30] });
+}
+
+function renderLegend() {
+  if (!mapInited) return;
+  const el = document.getElementById('map-legend');
+  const active = state.drivers.filter(d => d.status === 'tracking' || d.status === 'paused');
+  if (!active.length) { el.innerHTML = '<div class="legend-title">Немає активних</div>'; return; }
+  el.innerHTML = `<div class="legend-title">Активні водії</div>` +
+    active.map(d => `<div class="legend-item">
+      <div class="legend-dot" style="background:${d.color}"></div>
+      ${d.name} · ${(d.distance||0).toFixed(1)} км
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════
+// GPS PER DRIVER
+// ══════════════════════════════════════
+const watchIds = {}; // driverId → watchId
+const trackIntervals = {}; // driverId → timerInterval
+
+function startTracking(driverId) {
+  if (!navigator.geolocation) { toast('GPS недоступний в цьому браузері', 'error'); return; }
+  const driver = state.drivers.find(d => d.id === driverId);
+  if (!driver) return;
+
+  driver.status = 'tracking';
+  driver._coords = driver._coords || [];
+  driver.distance = driver.distance || 0;
+  driver.waypoints = driver.waypoints || [];
+  driver.tripStart = driver.tripStart || Date.now();
+  driver._tripSeconds = driver._tripSeconds || 0;
+
+  _haptic('medium');
+
+  trackIntervals[driverId] = setInterval(() => {
+    driver._tripSeconds = (driver._tripSeconds || 0) + 1;
+    renderDrivers();
+  }, 1000);
+
+  watchIds[driverId] = navigator.geolocation.watchPosition(
+    pos => onGPS(driverId, pos),
+    err => toast(`GPS помилка: ${err.message}`, 'error'),
+    { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+  );
+
+  saveState(); renderDrivers();
+  if (mapInited) { renderLegend(); }
+  updateActiveBadge();
+  toast(`▶ ${driver.name} — відстеження розпочато`, 'success');
+}
+
+function onGPS(driverId, pos) {
+  const driver = state.drivers.find(d => d.id === driverId);
+  if (!driver || driver.status !== 'tracking') return;
+
+  const lat = pos.coords.latitude;
+  const lng = pos.coords.longitude;
+  const spd = pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0;
+  const acc = Math.round(pos.coords.accuracy);
+
+  driver.speed = spd;
+  driver.accuracy = acc;
+  driver._lastPos = [lat, lng];
+
+  if (!driver._coords) driver._coords = [];
+  if (driver._coords.length > 0) {
+    const last = driver._coords[driver._coords.length - 1];
+    const d = haversine(last[0], last[1], lat, lng);
+    if (d > 0.005) {
+      driver._coords.push([lat, lng]);
+      driver.distance = (driver.distance || 0) + d;
+    }
+  } else {
+    driver._coords.push([lat, lng]);
+  }
+
+  updateDriverOnMap(driver, [lat, lng]);
+  renderDrivers();
+  if (mapInited) renderLegend();
+}
+
+function stopTracking(driverId) {
+  const driver = state.drivers.find(d => d.id === driverId);
+  if (!driver) return;
+
+  if (watchIds[driverId]) { navigator.geolocation.clearWatch(watchIds[driverId]); delete watchIds[driverId]; }
+  if (trackIntervals[driverId]) { clearInterval(trackIntervals[driverId]); delete trackIntervals[driverId]; }
+  _haptic('heavy');
+
+  // Save trip
+  if (driver._coords && driver._coords.length > 1) {
+    const trip = {
+      id: Date.now(),
+      driverId: driver.id,
+      driverName: driver.name,
+      vehicle: driver.vehicle,
+      color: driver.color,
+      distance: (driver.distance || 0).toFixed(2),
+      duration: formatDuration(driver._tripSeconds || 0),
+      waypointCount: (driver.waypoints || []).length,
+      startTs: driver.tripStart || Date.now(),
+      endTs: Date.now(),
+      date: new Date().toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }),
+      coords: [...driver._coords],
+    };
+    state.trips.unshift(trip);
+  }
+
+  // Reset driver
+  driver.status = 'idle';
+  driver._coords = [];
+  driver.distance = 0;
+  driver.speed = 0;
+  driver.waypoints = [];
+  driver._tripSeconds = 0;
+  driver.tripStart = null;
+
+  if (driverLayers[driver.id]) {
+    driverLayers[driver.id].polyline.setLatLngs([]);
+  }
+
+  saveState(); renderDrivers(); renderHistory(); renderLegend();
+  updateActiveBadge();
+  toast(`■ ${driver.name} — поїздку завершено`, 'info');
+}
+
+function addWaypoint(driverId) {
+  const driver = state.drivers.find(d => d.id === driverId);
+  if (!driver || !driver._lastPos) { toast('GPS позиція ще не визначена', 'error'); return; }
+
+  const wp = {
+    id: Date.now(),
+    lat: driver._lastPos[0],
+    lng: driver._lastPos[1],
+    time: new Date().toLocaleTimeString('uk-UA'),
+    distFromStart: (driver.distance || 0).toFixed(2),
+  };
+
+  // Dist from prev waypoint
+  const wps = driver.waypoints || [];
+  if (wps.length > 0) {
+    const prev = wps[wps.length-1];
+    wp.distFromPrev = haversine(prev.lat, prev.lng, wp.lat, wp.lng).toFixed(3);
+  } else {
+    wp.distFromPrev = '0';
+  }
+
+  driver.waypoints = [...wps, wp];
+  _haptic('light');
+
+  // Marker on map
+  if (mapInited) {
+    const n = driver.waypoints.length;
+    L.marker([wp.lat, wp.lng], {
+      icon: L.divIcon({
+        className:'',
+        html:`<div style="background:${driver.color};color:#060810;font-family:DM Mono,monospace;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;box-shadow:0 0 8px ${driver.color}80;white-space:nowrap;">P${n}</div>`,
+        iconAnchor:[0,10],
+      })
+    }).addTo(map).bindPopup(`<b>${driver.name} · Точка ${n}</b><br>${wp.time}<br>+${wp.distFromStart} км від старту<br>+${wp.distFromPrev} км від попередньої`);
+  }
+
+  renderDrivers();
+  toast(`📍 ${driver.name} — точка ${driver.waypoints.length}`, 'success');
+}
+
+// ══════════════════════════════════════
+// RENDER DRIVERS
+// ══════════════════════════════════════
+const AVATAR_COLORS = COLORS;
+
+function renderDrivers() {
+  const el = document.getElementById('drivers-list');
+  if (!state.drivers.length) {
+    el.innerHTML = `<div class="empty-state"><div class="big">🚗</div>Додайте водія натиснувши <strong style="color:var(--g)">+</strong><br>щоб почати відстеження</div>`;
+    return;
+  }
+
+  el.innerHTML = state.drivers.map(d => {
+    const initials = d.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const isTracking = d.status === 'tracking';
+    const secs = d._tripSeconds || 0;
+    return `
+    <div class="driver-card ${d.status}" data-id="${d.id}">
+      <div class="driver-card-top">
+        <div class="driver-avatar" style="background:${d.color}22;color:${d.color};">
+          ${initials}
+          <div class="pulse-ring" style="color:${d.color};border-color:${d.color};"></div>
+        </div>
+        <div class="driver-info">
+          <div class="driver-name">${d.name}</div>
+          <div class="driver-vehicle">${d.vehicle || 'Транспорт не вказано'}</div>
+        </div>
+        <div class="driver-status ${d.status}">${statusLabel(d.status)}</div>
+      </div>
+      <div class="driver-stats">
+        <div class="driver-stat">
+          <div class="val" style="color:${d.color}">${(d.distance||0).toFixed(2)}</div>
+          <div class="lbl">км</div>
+        </div>
+        <div class="driver-stat">
+          <div class="val" style="color:var(--b)">${d.speed||0}</div>
+          <div class="lbl">км/год</div>
+        </div>
+        <div class="driver-stat">
+          <div class="val">${isTracking ? formatDuration(secs) : '—'}</div>
+          <div class="lbl">час</div>
+        </div>
+      </div>
+      <div class="driver-actions">
+        ${!isTracking
+          ? `<button class="da-btn start" onclick="startTracking(${d.id})">▶ Старт</button>`
+          : `<button class="da-btn stop" onclick="stopTracking(${d.id})">■ Стоп</button>`
+        }
+        <button class="da-btn waypoint" onclick="addWaypoint(${d.id})" ${!isTracking?'disabled':''}>+ Точка</button>
+        <button class="da-btn map" onclick="focusDriverOnMap(${d.id})">⊙ Карта</button>
+        <button class="da-btn map" onclick="openEditDriver(${d.id})" style="flex:0;padding:8px 10px;">✎</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function statusLabel(s) {
+  return s === 'tracking' ? '● Активний' : s === 'paused' ? '◐ Пауза' : '○ Очікує';
+}
+
+function focusDriverOnMap(driverId) {
+  const driver = state.drivers.find(d => d.id === driverId);
+  if (!driver) return;
+  switchView('map');
+  if (!mapInited) initMap();
+  setTimeout(() => {
+    if (driver._lastPos) {
+      map.setView(driver._lastPos, 16, { animate: true });
+    } else if (driver._coords && driver._coords.length) {
+      map.fitBounds(L.latLngBounds(driver._coords), { padding: [40,40] });
+    } else {
+      toast('Ще немає координат для цього водія', 'info');
+    }
+  }, 200);
+}
+
+// ══════════════════════════════════════
+// DRIVER CRUD
+// ══════════════════════════════════════
+let _editDriverId = null;
+let _selectedColor = COLORS[0];
+
+function openAddDriver() {
+  _editDriverId = null;
+  _selectedColor = COLORS[state.drivers.length % COLORS.length];
+  document.getElementById('modal-driver-title').textContent = 'Новий водій';
+  document.getElementById('inp-name').value = '';
+  document.getElementById('inp-vehicle').value = '';
+  document.getElementById('modal-driver-delete').style.display = 'none';
+  renderColorPicker();
+  openModal('modal-driver');
+  setTimeout(() => document.getElementById('inp-name').focus(), 300);
+}
+
+function openEditDriver(id) {
+  const driver = state.drivers.find(d => d.id === id);
+  if (!driver) return;
+  _editDriverId = id;
+  _selectedColor = driver.color;
+  document.getElementById('modal-driver-title').textContent = 'Редагувати';
+  document.getElementById('inp-name').value = driver.name;
+  document.getElementById('inp-vehicle').value = driver.vehicle || '';
+  document.getElementById('modal-driver-delete').style.display = driver.status === 'idle' ? '' : 'none';
+  renderColorPicker();
+  openModal('modal-driver');
+}
+
+function renderColorPicker() {
+  document.getElementById('color-picker').innerHTML = COLORS.map(c =>
+    `<div class="color-swatch ${c===_selectedColor?'selected':''}" style="background:${c}" onclick="selectColor('${c}')"></div>`
+  ).join('');
+}
+
+function selectColor(c) {
+  _selectedColor = c;
+  document.querySelectorAll('.color-swatch').forEach(el => {
+    el.classList.toggle('selected', el.style.background === c || el.style.backgroundColor === c);
+  });
+}
+
+function saveDriver() {
+  const name = document.getElementById('inp-name').value.trim();
+  if (!name) { document.getElementById('inp-name').focus(); return; }
+  const vehicle = document.getElementById('inp-vehicle').value.trim();
+
+  if (_editDriverId) {
+    const d = state.drivers.find(d => d.id === _editDriverId);
+    if (d) { d.name = name; d.vehicle = vehicle; d.color = _selectedColor; }
+  } else {
+    state.drivers.push({
+      id: state._nextId++,
+      name, vehicle,
+      color: _selectedColor,
+      status: 'idle',
+      distance: 0, speed: 0, accuracy: 0,
+      waypoints: [], _coords: [],
+    });
+  }
+
+  closeModal('modal-driver');
+  saveState(); renderDrivers();
+  toast(_editDriverId ? '✓ Дані оновлено' : `✓ ${name} додано`, 'success');
+}
+
+function deleteDriver() {
+  const id = _editDriverId;
+  if (!id) return;
+  const driver = state.drivers.find(d => d.id === id);
+  if (!driver || driver.status !== 'idle') return;
+  state.drivers = state.drivers.filter(d => d.id !== id);
+  if (driverLayers[id]) {
+    map && map.removeLayer(driverLayers[id].polyline);
+    map && map.removeLayer(driverLayers[id].marker);
+    delete driverLayers[id];
+  }
+  closeModal('modal-driver');
+  saveState(); renderDrivers();
+  toast('Водія видалено', 'info');
+}
+
+// ══════════════════════════════════════
+// HISTORY
+// ══════════════════════════════════════
+let historyFilter = 'all';
+
+function renderHistory() {
+  const chips = document.getElementById('filter-chips');
+  const drivers = [...new Set(state.trips.map(t => t.driverName))];
+  chips.innerHTML = `<button class="chip ${historyFilter==='all'?'active':''}" data-filter="all" onclick="filterHistory(this,'all')">Всі</button>` +
+    drivers.map(n => `<button class="chip ${historyFilter===n?'active':''}" onclick="filterHistory(this,'${n}')">${n}</button>`).join('');
+
+  const trips = historyFilter === 'all' ? state.trips : state.trips.filter(t => t.driverName === historyFilter);
+
+  const el = document.getElementById('history-list');
+  if (!trips.length) {
+    el.innerHTML = `<div class="empty-state"><div class="big">📋</div>Поїздок ще немає.<br>Розпочніть відстеження на вкладці <strong style="color:var(--g)">Водії</strong>.</div>`;
+    return;
+  }
+
+  el.innerHTML = trips.map(t => `
+    <div class="trip-card" onclick="showTripOnMap(${t.id})">
+      <div class="trip-card-top">
+        <div class="trip-color-bar" style="background:${t.color}"></div>
+        <div class="trip-meta">
+          <div class="trip-driver">${t.driverName}</div>
+          <div class="trip-date">${t.vehicle ? t.vehicle + ' · ' : ''}${t.date}</div>
+        </div>
+        <div class="trip-dist" style="color:${t.color}">${t.distance}<span>км</span></div>
+      </div>
+      <div class="trip-row">
+        <div class="trip-cell"><div class="tc-val">${t.duration}</div><div class="tc-lbl">Тривалість</div></div>
+        <div class="trip-cell"><div class="tc-val">${t.waypointCount}</div><div class="tc-lbl">Зупинок</div></div>
+        <div class="trip-cell"><div class="tc-val">${speedEst(t.distance, t.duration)}</div><div class="tc-lbl">сер. км/год</div></div>
+      </div>
+    </div>`).join('');
+}
+
+function filterHistory(el, filter) {
+  historyFilter = filter;
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.filter === filter || c.textContent === filter));
+  renderHistory();
+}
+
+function showTripOnMap(tripId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (!trip || !trip.coords || !trip.coords.length) { toast('Немає даних маршруту', 'error'); return; }
+  switchView('map');
+  if (!mapInited) initMap();
+  setTimeout(() => {
+    L.polyline(trip.coords, { color: trip.color, weight: 3, dashArray: '6,4', opacity: 0.7 }).addTo(map);
+    map.fitBounds(L.latLngBounds(trip.coords), { padding: [30,30] });
+    toast(`📋 Маршрут: ${trip.driverName}`, 'info');
+  }, 200);
+}
+
+// ══════════════════════════════════════
+// EXPORT TO EXCEL
+// ══════════════════════════════════════
+function exportToExcel() {
+  if (!state.trips.length) { toast('Немає поїздок для експорту', 'error'); return; }
+
+  const wb = XLSX.utils.book_new();
+
+  // ── SHEET 1: Зведення поїздок ──
+  const summaryHeaders = [
+    'Дата та час', 'Водій', 'Транспорт', 'Відстань (км)',
+    'Тривалість', 'Зупинок', 'Поч. координати', 'Кін. координати',
+  ];
+  const summaryRows = state.trips.map(t => {
+    const start = t.coords && t.coords.length > 0 ? `${t.coords[0][0].toFixed(5)}, ${t.coords[0][1].toFixed(5)}` : '—';
+    const end   = t.coords && t.coords.length > 0 ? `${t.coords[t.coords.length-1][0].toFixed(5)}, ${t.coords[t.coords.length-1][1].toFixed(5)}` : '—';
+    return [
+      t.date,
+      t.driverName,
+      t.vehicle || '—',
+      parseFloat(t.distance),
+      t.duration,
+      t.waypointCount,
+      start,
+      end,
+    ];
+  });
+
+  const summaryWs = XLSX.utils.aoa_to_sheet([summaryHeaders, ...summaryRows]);
+
+  // Column widths
+  summaryWs['!cols'] = [
+    {wch:20},{wch:22},{wch:24},{wch:16},{wch:14},{wch:10},{wch:26},{wch:26},
+  ];
+
+  // Header style
+  summaryHeaders.forEach((_, i) => {
+    const cell = summaryWs[XLSX.utils.encode_cell({r:0, c:i})];
+    if (cell) {
+      cell.s = {
+        font: { bold: true, color: { rgb: 'FFFFFF' }, name: 'Arial', sz: 11 },
+        fill: { patternType: 'solid', fgColor: { rgb: '0D5C2E' } },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+        border: {
+          bottom: { style: 'thin', color: { rgb: '00E676' } },
+        },
+      };
+    }
+  });
+
+  // Data rows: alternate bg + format distance
+  summaryRows.forEach((row, ri) => {
+    row.forEach((_, ci) => {
+      const cell = summaryWs[XLSX.utils.encode_cell({r: ri+1, c: ci})];
+      if (!cell) return;
+      const isEven = ri % 2 === 0;
+      cell.s = {
+        font: { name: 'Arial', sz: 10 },
+        fill: { patternType: 'solid', fgColor: { rgb: isEven ? '0D1020' : '141828' } },
+        alignment: { horizontal: ci === 3 ? 'right' : 'left', vertical: 'center' },
+      };
+      // Distance column: number format
+      if (ci === 3) cell.z = '#,##0.00" км"';
+    });
+  });
+
+  // Totals row
+  const totalRow = summaryRows.length + 1; // 1-indexed after header
+  const totalRowData = [
+    'РАЗОМ:', '', '',
+    { f: `SUM(D2:D${totalRow})` },
+    '', summaryRows.reduce((s, r) => s + r[5], 0),
+    '', '',
+  ];
+  XLSX.utils.sheet_add_aoa(summaryWs, [totalRowData], { origin: { r: summaryRows.length + 1, c: 0 } });
+  const totalCells = ['A','B','C','D','E','F','G','H'];
+  totalCells.forEach((col, i) => {
+    const ref = `${col}${summaryRows.length + 2}`;
+    if (summaryWs[ref]) {
+      summaryWs[ref].s = {
+        font: { bold: true, name: 'Arial', sz: 10, color: { rgb: '00E676' } },
+        fill: { patternType: 'solid', fgColor: { rgb: '060810' } },
+        alignment: { horizontal: i === 3 ? 'right' : 'left' },
+        border: { top: { style: 'thin', color: { rgb: '00E676' } } },
+      };
+    }
+  });
+
+  XLSX.utils.book_append_sheet(wb, summaryWs, 'Зведення поїздок');
+
+  // ── SHEET 2: По водіях ──
+  const drivers = [...new Set(state.trips.map(t => t.driverName))];
+  const byDriverHeaders = ['Водій', 'Поїздок', 'Заг. відстань (км)', 'Заг. зупинок', 'Остання поїздка'];
+  const byDriverRows = drivers.map(name => {
+    const trips = state.trips.filter(t => t.driverName === name);
+    const totalDist = trips.reduce((s,t) => s + parseFloat(t.distance), 0);
+    const totalWp = trips.reduce((s,t) => s + t.waypointCount, 0);
+    return [name, trips.length, +totalDist.toFixed(2), totalWp, trips[0]?.date || '—'];
+  });
+
+  const driverWs = XLSX.utils.aoa_to_sheet([byDriverHeaders, ...byDriverRows]);
+  driverWs['!cols'] = [{wch:24},{wch:10},{wch:22},{wch:14},{wch:20}];
+
+  byDriverHeaders.forEach((_, i) => {
+    const cell = driverWs[XLSX.utils.encode_cell({r:0, c:i})];
+    if (cell) cell.s = {
+      font: { bold: true, name: 'Arial', sz: 11, color: { rgb: 'FFFFFF' } },
+      fill: { patternType: 'solid', fgColor: { rgb: '1A3A6C' } },
+      alignment: { horizontal: 'center' },
+      border: { bottom: { style: 'thin', color: { rgb: '448AFF' } } },
+    };
+  });
+  byDriverRows.forEach((row, ri) => {
+    row.forEach((_, ci) => {
+      const cell = driverWs[XLSX.utils.encode_cell({r: ri+1, c: ci})];
+      if (!cell) return;
+      cell.s = {
+        font: { name: 'Arial', sz: 10 },
+        fill: { patternType: 'solid', fgColor: { rgb: ri%2===0 ? '0D1020' : '141828' } },
+        alignment: { horizontal: ci === 2 ? 'right' : 'left' },
+      };
+      if (ci === 2) cell.z = '#,##0.00" км"';
+    });
+  });
+
+  XLSX.utils.book_append_sheet(wb, driverWs, 'По водіях');
+
+  // ── SHEET 3: Точки маршрутів ──
+  const wpHeaders = ['Поїздка (дата)', 'Водій', '№ точки', 'Широта', 'Довгота', 'Час', 'Від старту (км)', 'Від попередньої (км)'];
+  const wpRows = [];
+
+  state.trips.forEach(t => {
+    if (t.coords && t.coords.length > 0) {
+      // start point
+      wpRows.push([t.date, t.driverName, 'Старт',
+        t.coords[0][0].toFixed(6), t.coords[0][1].toFixed(6), '', '0.000', '—']);
+      // end point
+      wpRows.push([t.date, t.driverName, 'Фініш',
+        t.coords[t.coords.length-1][0].toFixed(6), t.coords[t.coords.length-1][1].toFixed(6),
+        '', t.distance, '—']);
+    }
+  });
+
+  if (wpRows.length > 0) {
+    const wpWs = XLSX.utils.aoa_to_sheet([wpHeaders, ...wpRows]);
+    wpWs['!cols'] = [{wch:20},{wch:22},{wch:10},{wch:14},{wch:14},{wch:10},{wch:18},{wch:22}];
+    wpHeaders.forEach((_, i) => {
+      const cell = wpWs[XLSX.utils.encode_cell({r:0, c:i})];
+      if (cell) cell.s = {
+        font: { bold: true, name: 'Arial', sz: 11, color: { rgb: 'FFFFFF' } },
+        fill: { patternType: 'solid', fgColor: { rgb: '3D1A00' } },
+        alignment: { horizontal: 'center' },
+        border: { bottom: { style: 'thin', color: { rgb: 'FF9100' } } },
+      };
+    });
+    XLSX.utils.book_append_sheet(wb, wpWs, 'Точки маршрутів');
+  }
+
+  // ── Generate filename ──
+  const now = new Date();
+  const dateStr = `${now.getDate().toString().padStart(2,'0')}.${(now.getMonth()+1).toString().padStart(2,'0')}.${now.getFullYear()}`;
+  const filename = `FleetTrack_Журнал_${dateStr}.xlsx`;
+
+  // ── Write & download ──
+  try {
+    XLSX.writeFile(wb, filename, { bookSST: false, type: 'binary', cellStyles: true });
+    toast(`✓ Збережено: ${filename}`, 'success');
+  } catch(e) {
+    // Fallback without styles
+    const wb2 = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb2,
+      XLSX.utils.aoa_to_sheet([summaryHeaders, ...summaryRows]), 'Зведення');
+    XLSX.writeFile(wb2, filename);
+    toast(`✓ Збережено: ${filename}`, 'success');
+  }
+}
+
+function clearHistory() {
+  if (!state.trips.length) { toast('Журнал вже порожній', 'info'); return; }
+  if (confirm('Очистити весь журнал поїздок?')) {
+    state.trips = [];
+    saveState(); renderHistory();
+    toast('Журнал очищено', 'info');
+  }
+}
+
+function speedEst(distStr, durStr) {
+  const dist = parseFloat(distStr);
+  if (!dist) return '—';
+  const parts = durStr.match(/(\d+)г\s*(\d+)хв|(\d+)хв\s*(\d+)с|(\d+)хв|(\d+)с/);
+  if (!parts) return '—';
+  let totalMin = 0;
+  if (parts[1]) totalMin = parseInt(parts[1])*60 + parseInt(parts[2]);
+  else if (parts[3]) totalMin = parseInt(parts[3]) + parseInt(parts[4])/60;
+  else if (parts[5]) totalMin = parseInt(parts[5]);
+  else if (parts[6]) totalMin = parseInt(parts[6])/60;
+  if (!totalMin) return '—';
+  return Math.round(dist / (totalMin/60));
+}
+
+// ══════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.id === 'nav-' + name));
+  if (name === 'map') {
+    initMap();
+    setTimeout(() => map.invalidateSize(), 100);
+  }
+  if (name === 'history') renderHistory();
+}
+
+function updateActiveBadge() {
+  const count = state.drivers.filter(d => d.status === 'tracking').length;
+  const badge = document.getElementById('active-badge');
+  badge.textContent = count;
+  badge.style.display = count > 0 ? 'flex' : 'none';
+}
+
+// ══════════════════════════════════════
+// MODAL HELPERS
+// ══════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.querySelectorAll('.modal-bg').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) closeModal(m.id); });
+});
+
+// ══════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 2300);
+}
+
+// ══════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════
+function haversine(lat1,lon1,lat2,lon2) {
+  const R=6371, dL=(lat2-lat1)*Math.PI/180, dO=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dL/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dO/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function formatDuration(secs) {
+  const h = Math.floor(secs/3600);
+  const m = Math.floor((secs%3600)/60);
+  const s = secs%60;
+  if (h>0) return `${h}г ${m}хв`;
+  if (m>0) return `${m}хв ${s}с`;
+  return `${s}с`;
+}
+
+// ══════════════════════════════════════
+// PWA INSTALL
+// ══════════════════════════════════════
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').classList.remove('hidden');
+});
+document.getElementById('install-btn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const res = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('install-banner').classList.add('hidden');
+  if (res.outcome === 'accepted') toast('✓ Додаток встановлено!', 'success');
+});
+function dismissInstall() {
+  document.getElementById('install-banner').classList.add('hidden');
+  localStorage.setItem('install-dismissed', '1');
+}
+if (localStorage.getItem('install-dismissed')) {
+  document.getElementById('install-banner').classList.add('hidden');
+}
+
+// ══════════════════════════════════════
+// ══════════════════════════════════════
+// TELEGRAM MINI APP INIT
+// ══════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand(); // full screen
+
+  // Match header color to Telegram theme
+  const hc = tg.headerColor || tg.themeParams?.bg_color;
+  if (hc) document.documentElement.style.setProperty('--bg1', hc);
+
+  // Safe area for notch / home indicator
+  const insets = tg.contentSafeAreaInsets || tg.safeAreaInsets || {};
+  if (insets.top)    document.documentElement.style.setProperty('--safe-top',  insets.top  + 'px');
+  if (insets.bottom) document.documentElement.style.setProperty('--safe-bot',  insets.bottom + 'px');
+
+  // Auto-create driver profile from Telegram user
+  const user = tg.initDataUnsafe?.user;
+  if (user && !state.drivers.length) {
+    const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+    state.drivers.push({
+      id: state._nextId++,
+      name: fullName || 'Водій',
+      vehicle: '',
+      color: '#00e676',
+      status: 'idle',
+      distance: 0, speed: 0, accuracy: 0,
+      waypoints: [], _coords: [],
+    });
+    saveState();
+  }
+
+  // Back button support
+  tg.BackButton.onClick(() => {
+    const active = document.querySelector('.view.active')?.id;
+    if (active !== 'view-drivers') { switchView('drivers'); tg.BackButton.hide(); }
+  });
+
+  // Show back button when not on main view
+  const origSwitch = switchView;
+  window.switchView = function(name) {
+    origSwitch(name);
+    if (name === 'drivers') tg.BackButton.hide();
+    else tg.BackButton.show();
+  };
+
+  // Haptic feedback on key actions
+  window._haptic = (type = 'light') => tg.HapticFeedback?.impactOccurred(type);
+} else {
+  window._haptic = () => {};
+}
+
+// ══════════════════════════════════════
+// SERVICE WORKER
+// ══════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ══════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════
+loadState();
+// Re-attach _coords arrays (stripped for storage)
+state.drivers.forEach(d => { if (!d._coords) d._coords = []; });
+renderDrivers();
+updateActiveBadge();
+</script>
+</body>
+</html>
