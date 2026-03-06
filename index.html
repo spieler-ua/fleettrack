@@ -679,7 +679,50 @@ body {
 .export-sheet-banner span { font-size: 11px; color: var(--txt2); }
 .export-sheet-banner strong { color: var(--g); }
 
-/* ── ODOMETER ── */
+/* ── CONFIRM DIALOG ── */
+.confirm-icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: rgba(255,82,82,0.12);
+  border: 2px solid rgba(255,82,82,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  margin: 0 auto 14px;
+}
+.confirm-title {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 18px;
+  text-align: center;
+  color: var(--txt);
+  margin-bottom: 8px;
+}
+.confirm-desc {
+  font-size: 12px;
+  color: var(--txt2);
+  text-align: center;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+.confirm-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,82,82,0.1);
+  border: 1px solid rgba(255,82,82,0.25);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 12px;
+  color: var(--r);
+  font-weight: 600;
+  margin: 8px auto 0;
+}
+.modal-btn.danger {
+  background: var(--r);
+  color: #fff;
+  border: none;
+}
+.modal-btn.danger:active { opacity: 0.85; }
 .odo-input-wrap { position: relative; margin-top: 6px; }
 .odo-input-wrap input {
   width: 100%;
@@ -1056,6 +1099,25 @@ body {
     <div class="modal-actions">
       <button class="modal-btn cancel" onclick="closeModal('modal-odo')">Скасувати</button>
       <button class="modal-btn confirm" id="btn-odo-save" onclick="saveWaypointWithOdo()">Зберегти точку</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL: CONFIRM CLEAR HISTORY
+══════════════════════════════════ -->
+<div class="modal-bg" id="modal-confirm-clear">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;padding:8px 0 16px;">
+      <div class="confirm-icon">🗑</div>
+      <div class="confirm-title">Очистити журнал?</div>
+      <div class="confirm-desc">Всі завершені поїздки будуть видалені безповоротно.<br>Водії та активні поїздки залишаться.</div>
+      <div class="confirm-count" id="confirm-trip-count">0 поїздок</div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal('modal-confirm-clear')">Скасувати</button>
+      <button class="modal-btn danger" onclick="confirmClearHistory()">🗑 Видалити все</button>
     </div>
   </div>
 </div>
@@ -1479,7 +1541,20 @@ function stopTracking(driverId) {
     const wpsWithOdo = (driver.waypoints || []).filter(w => w.odo != null);
     const odoStart = wpsWithOdo.length ? wpsWithOdo[0].odo : null;
     const odoEnd   = wpsWithOdo.length ? wpsWithOdo[wpsWithOdo.length-1].odo : null;
-    const odoTotal = (odoStart !== null && odoEnd !== null) ? (odoEnd - odoStart) : null;
+
+    // Add GPS driven after the last odometer waypoint to get accurate total
+    const lastWp = wpsWithOdo.length ? wpsWithOdo[wpsWithOdo.length-1] : null;
+    const gpsSinceLastWp = lastWp
+      ? Math.max(0, (driver.distance || 0) - parseFloat(lastWp.distFromStart || 0))
+      : (driver.distance || 0);
+
+    // odoTotal = odometer span between points + GPS driven after last point
+    const odoTotal = odoStart !== null
+      ? (odoEnd - odoStart) + gpsSinceLastWp
+      : null;
+
+    // Calculated finish odometer = last reading + GPS after it
+    const odoEndCalc = odoEnd !== null ? odoEnd + gpsSinceLastWp : null;
 
     const trip = {
       id: Date.now(),
@@ -1495,7 +1570,7 @@ function stopTracking(driverId) {
       date: new Date().toLocaleDateString('uk-UA', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }),
       coords: [...driver._coords],
       waypoints: JSON.parse(JSON.stringify(driver.waypoints || [])),
-      odoStart, odoEnd, odoTotal,
+      odoStart, odoEnd: odoEndCalc, odoTotal,
       addrStart: driver._addrStart || null,
       addrEnd: null,
     };
@@ -1698,20 +1773,31 @@ function renderDrivers() {
 
     // Odometer summary
     const wpsWithOdo = (d.waypoints || []).filter(w => w.odo != null);
-    const lastOdo = wpsWithOdo.length ? wpsWithOdo[wpsWithOdo.length-1].odo : null;
-    const firstOdo = wpsWithOdo.length ? wpsWithOdo[0].odo : null;
-    const totalOdoDist = (wpsWithOdo.length >= 2)
-      ? (wpsWithOdo[wpsWithOdo.length-1].odo - wpsWithOdo[0].odo)
-      : null;
+    const lastOdoWp  = wpsWithOdo.length ? wpsWithOdo[wpsWithOdo.length-1] : null;
+    const firstOdo   = wpsWithOdo.length ? wpsWithOdo[0].odo : null;
+    const lastOdo    = lastOdoWp ? lastOdoWp.odo : null;
 
-    const odoBar = lastOdo !== null ? `
+    // GPS driven since last odometer waypoint
+    const gpsSinceLastWp = lastOdoWp
+      ? Math.max(0, (d.distance || 0) - parseFloat(lastOdoWp.distFromStart || 0))
+      : (d.distance || 0);
+
+    // Calculated current odometer = last reading + GPS driven since then
+    const currentOdoCalc = lastOdo !== null ? lastOdo + gpsSinceLastWp : null;
+
+    // Total trip odometer = (last reading - first reading) + GPS after last reading
+    const totalOdoDist = firstOdo !== null && lastOdo !== null
+      ? (lastOdo - firstOdo) + gpsSinceLastWp
+      : (firstOdo !== null ? gpsSinceLastWp : null);
+
+    const odoBar = firstOdo !== null ? `
       <div class="driver-odo-bar">
         <div>
-          <div class="odo-meta">СПІДОМЕТР</div>
-          <div class="odo-val">📟 ${lastOdo.toLocaleString('uk-UA')} км</div>
+          <div class="odo-meta">СПІДОМЕТР (розрахунок)</div>
+          <div class="odo-val">📟 ${Math.round(currentOdoCalc).toLocaleString('uk-UA')} км</div>
         </div>
         ${totalOdoDist !== null ? `<div style="text-align:right;">
-          <div class="odo-meta">ПРОБІГ (точки)</div>
+          <div class="odo-meta">ПРОБІГ</div>
           <div class="odo-val" style="color:var(--g)">+${totalOdoDist.toFixed(1)} км</div>
         </div>` : ''}
       </div>` : '';
@@ -2216,11 +2302,19 @@ function exportToExcel() {
 
 function clearHistory() {
   if (!state.trips.length) { toast('Журнал вже порожній', 'info'); return; }
-  if (confirm('Очистити весь журнал поїздок?')) {
-    state.trips = [];
-    saveState(); renderHistory();
-    toast('Журнал очищено', 'info');
-  }
+  const n = state.trips.length;
+  const word = n === 1 ? 'поїздка' : n < 5 ? 'поїздки' : 'поїздок';
+  document.getElementById('confirm-trip-count').textContent = `${n} ${word}`;
+  _haptic && _haptic('light');
+  openModal('modal-confirm-clear');
+}
+
+function confirmClearHistory() {
+  closeModal('modal-confirm-clear');
+  state.trips = [];
+  saveState(); renderHistory();
+  _haptic && _haptic('heavy');
+  toast('🗑 Журнал очищено', 'info');
 }
 
 function speedEst(distStr, durStr) {
