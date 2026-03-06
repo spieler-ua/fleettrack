@@ -801,6 +801,42 @@ body {
 .leaflet-container { background: var(--bg0) !important; }
 .leaflet-tile { filter: brightness(0.85) saturate(0.9); }
 
+/* ══════════════════════════════════════
+   VIEW: CLIENTS
+══════════════════════════════════════ */
+#view-clients { overflow-y: auto; }
+.clients-header { padding: 20px 16px 12px; display: flex; align-items: center; justify-content: space-between; }
+.clients-header h2 { font-family: var(--sans); font-weight: 800; font-size: 22px; }
+.clients-header h2 span { color: var(--txt2); font-weight: 400; font-size: 14px; }
+.sheets-setup { margin: 0 16px 14px; background: var(--bg1); border: 1px solid var(--line); border-radius: var(--rad); padding: 14px 16px; }
+.sheets-setup-title { font-family: var(--sans); font-weight: 700; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 7px; }
+.sheets-url-wrap { display: flex; gap: 7px; margin-top: 8px; }
+.sheets-url-inp { flex: 1; background: var(--bg2); border: 1px solid var(--line2); border-radius: 7px; padding: 9px 12px; color: var(--txt); font-family: var(--mono); font-size: 12px; outline: none; transition: border-color 0.2s; min-width: 0; }
+.sheets-url-inp:focus { border-color: var(--b); }
+.sheets-url-inp::placeholder { color: var(--txt3); font-size: 11px; }
+.sheets-load-btn { flex-shrink: 0; background: var(--b); color: var(--bg0); border: none; border-radius: 7px; padding: 9px 14px; font-family: var(--mono); font-size: 11px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; white-space: nowrap; }
+.sheets-load-btn:active { opacity: 0.8; }
+.sheets-status { margin-top: 7px; font-size: 11px; color: var(--txt3); display: flex; align-items: center; gap: 6px; min-height: 16px; }
+.sheets-status.ok { color: var(--g); } .sheets-status.err { color: var(--r); } .sheets-status.busy { color: var(--b); }
+.sheets-hint { margin: 0 16px 10px; background: rgba(68,138,255,0.06); border: 1px solid rgba(68,138,255,0.18); border-radius: 8px; padding: 10px 13px; font-size: 11px; color: var(--txt2); line-height: 1.55; }
+.sheets-hint strong { color: var(--b); }
+.sheets-hint code { display: block; background: var(--bg2); border-radius: 4px; padding: 3px 7px; margin-top: 4px; color: var(--g); font-size: 10px; overflow-x: auto; white-space: nowrap; }
+.client-card { margin: 0 16px 8px; background: var(--bg1); border: 1px solid var(--line); border-radius: var(--rad); padding: 12px 14px; cursor: pointer; transition: border-color 0.15s; display: flex; align-items: flex-start; gap: 12px; }
+.client-card:active { border-color: var(--b); } .client-card:last-child { margin-bottom: 16px; }
+.client-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.client-body { flex: 1; min-width: 0; }
+.client-name { font-family: var(--sans); font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.client-addr { font-size: 11px; color: var(--txt2); margin-top: 2px; line-height: 1.35; }
+.client-meta { font-size: 10px; color: var(--txt3); margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap; }
+.client-action { flex-shrink: 0; background: rgba(68,138,255,0.1); border: 1px solid rgba(68,138,255,0.25); border-radius: 6px; color: var(--b); font-size: 11px; font-weight: 500; padding: 6px 10px; cursor: pointer; font-family: var(--mono); white-space: nowrap; transition: background 0.15s; }
+.client-action:active { background: rgba(68,138,255,0.2); }
+.client-search-bar { padding: 0 16px 10px; }
+.client-search-inp { width: 100%; background: var(--bg2); border: 1px solid var(--line2); border-radius: 8px; padding: 9px 12px; color: var(--txt); font-family: var(--mono); font-size: 13px; outline: none; transition: border-color 0.2s; }
+.client-search-inp:focus { border-color: var(--g); }
+.client-search-inp::placeholder { color: var(--txt3); }
+.search-result-item.client-result strong { color: var(--b); }
+.search-result-item .client-tag { display: inline-block; background: rgba(68,138,255,0.15); border-radius: 3px; padding: 1px 5px; font-size: 9px; color: var(--b); font-weight: 600; margin-left: 5px; vertical-align: middle; }
+
 /* ── MAP PICK MODE ── */
 .map-pick-bar {
   position: absolute;
@@ -1016,6 +1052,46 @@ body {
   <div id="history-list" style="flex:1;overflow-y:auto;padding-bottom:8px;"></div>
 </div>
 
+
+<!-- ══════════════════════════════════
+     VIEW: CLIENTS
+══════════════════════════════════ -->
+<div class="view" id="view-clients">
+  <div class="statusbar">
+    <span class="wordmark">Клієнти<span> база</span></span>
+    <button class="map-ctrl-btn" style="position:static;width:32px;height:32px;font-size:14px;" onclick="loadClientsFromSheets()" title="Оновити">🔄</button>
+  </div>
+
+  <div style="flex:1;overflow-y:auto;padding-bottom:8px;">
+    <!-- Google Sheets setup -->
+    <div class="sheets-hint">
+      <strong>Як підключити Google Sheets:</strong><br>
+      1. Створіть таблицю з колонками: <code>name,address,lat,lng,phone,note,color</code>
+      2. Файл → Поширити → Опублікувати в інтернеті → <strong>CSV</strong><br>
+      3. Вставте посилання нижче та натисніть «Завантажити»
+    </div>
+
+    <div class="sheets-setup">
+      <div class="sheets-setup-title">📊 Google Sheets CSV посилання</div>
+      <div class="sheets-url-wrap">
+        <input class="sheets-url-inp" id="inp-sheets-url" type="url"
+          placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv"
+          autocomplete="off"/>
+        <button class="sheets-load-btn" onclick="loadClientsFromSheets()">Завантажити</button>
+      </div>
+      <div class="sheets-status" id="sheets-status"></div>
+    </div>
+
+    <div class="client-search-bar" id="client-search-bar" style="display:none;">
+      <input class="client-search-inp" id="inp-client-search" type="text"
+        placeholder="🔍  Пошук клієнта за назвою або адресою..."
+        oninput="renderClients(this.value)" autocomplete="off"/>
+    </div>
+
+    <div id="clients-list"></div>
+  </div>
+</div>
+
 <!-- ── BOTTOM NAV ── -->
 <nav class="bottomnav">
   <button class="nav-btn active" id="nav-drivers" onclick="switchView('drivers')">
@@ -1036,6 +1112,12 @@ body {
       <path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/>
     </svg>
     Журнал
+  </button>
+  <button class="nav-btn" id="nav-clients" onclick="switchView('clients')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+    </svg>
+    Клієнти
   </button>
 </nav>
 
@@ -1172,6 +1254,7 @@ function initMap() {
   });
 
   renderLegend();
+  if (clientsDB.length) renderClientMarkers();
 }
 
 function initDriverLayer(driver) {
@@ -1341,28 +1424,56 @@ async function geoSearch() {
   if (!q) return;
   const resultsEl = document.getElementById('search-results');
   resultsEl.style.display = 'block';
-  resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--txt3)">Пошук...</div>';
 
+  // 1. Search clients DB first
+  const clientMatches = searchClients(q);
+  if (clientMatches.length) {
+    resultsEl.innerHTML = clientMatches.map(c => {
+      const safeAddr = (c.address||'').replace(/'/g, "\'");
+      return `<div class="search-result-item client-result"
+        onclick="selectClientResult(${c.lat}, ${c.lng}, '${c.name.replace(/'/g,"\'")}', '${safeAddr}')">
+        <strong>${c.name} <span class="client-tag">клієнт</span></strong>
+        ${c.address ? `<span style="font-size:10px;">${c.address}</span>` : ''}
+      </div>`;
+    }).join('');
+    // Still fetch Nominatim in background and append
+    fetchNominatimResults(q).then(extra => {
+      if (extra) resultsEl.innerHTML += extra;
+    });
+    return;
+  }
+
+  // 2. Fallback: Nominatim only
+  resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--txt3)">Пошук...</div>';
+  const extra = await fetchNominatimResults(q);
+  if (extra) resultsEl.innerHTML = extra;
+  else resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--txt3)">Нічого не знайдено</div>';
+}
+
+async function fetchNominatimResults(q) {
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=uk`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=4&accept-language=uk`;
     const res = await fetch(url, { headers: { 'Accept-Language': 'uk' } });
     const data = await res.json();
-
-    if (!data.length) {
-      resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--txt3)">Нічого не знайдено</div>';
-      return;
-    }
-
-    resultsEl.innerHTML = data.map((item, i) => {
+    if (!data.length) return null;
+    return data.map(item => {
       const name = item.display_name.split(',').slice(0, 3).join(', ');
       const type = item.type || item.class || '';
       return `<div class="search-result-item" onclick="selectSearchResult(${item.lat}, ${item.lon}, this)">
         <strong>${name}</strong>${type ? ` <span style="color:var(--txt3);font-size:10px;">${type}</span>` : ''}
       </div>`;
     }).join('');
-  } catch(e) {
-    resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--r)">Помилка пошуку. Перевірте інтернет.</div>';
-  }
+  } catch { return null; }
+}
+
+function selectClientResult(lat, lng, name, address) {
+  map.setView([lat, lng], 17, { animate: true });
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('inp-geo-search').value = name;
+  // Pre-fill note with client name for next waypoint
+  document.getElementById('inp-wp-note').value = name;
+  _haptic('light');
+  toast(`📍 ${name}`, 'success');
 }
 
 function selectSearchResult(lat, lng, el) {
@@ -2475,6 +2586,174 @@ if (tg) {
 }
 
 // ══════════════════════════════════════
+
+// ══════════════════════════════════════
+// CLIENTS DATABASE (Google Sheets CSV)
+// ══════════════════════════════════════
+let clientsDB = [];
+let _clientMarkers = [];
+const CLIENT_URL_KEY = 'fleettrack_sheets_url';
+
+function searchClients(q) {
+  if (!clientsDB.length) return [];
+  const lq = q.toLowerCase();
+  return clientsDB.filter(c =>
+    (c.name  && c.name.toLowerCase().includes(lq)) ||
+    (c.address && c.address.toLowerCase().includes(lq)) ||
+    (c.note  && c.note.toLowerCase().includes(lq))
+  ).slice(0, 5);
+}
+
+async function loadClientsFromSheets() {
+  const urlInp = document.getElementById('inp-sheets-url');
+  let url = (urlInp ? urlInp.value.trim() : '') || localStorage.getItem(CLIENT_URL_KEY) || '';
+  if (!url) {
+    setSheetStatus('err', '⚠ Вставте посилання на Google Sheets CSV');
+    return;
+  }
+  // Accept normal Sheets URL and convert to export CSV
+  if (url.includes('/edit') || url.includes('/pub')) {
+    url = url.replace('/edit.*', '/export?format=csv').replace(/\/pub.*/, '/export?format=csv');
+  }
+  setSheetStatus('busy', '⏳ Завантаження...');
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const rows = text.trim().split('\n');
+    const header = rows[0].split(',').map(h => h.trim().replace(/^"|"$/g,'').toLowerCase());
+    const idx = k => header.indexOf(k);
+    const parsed = rows.slice(1).filter(r => r.trim()).map(row => {
+      // Handle quoted CSV fields
+      const cols = parseCSVRow(row);
+      const get  = k => (cols[idx(k)] || '').trim().replace(/^"|"$/g,'');
+      const lat  = parseFloat(get('lat'));
+      const lng  = parseFloat(get('lng'));
+      return { name: get('name'), address: get('address'), lat, lng, phone: get('phone'), note: get('note'), color: get('color') || '#448aff' };
+    }).filter(c => c.name && !isNaN(c.lat) && !isNaN(c.lng));
+
+    if (!parsed.length) throw new Error('Немає валідних рядків. Перевірте заголовки колонок.');
+    clientsDB = parsed;
+    localStorage.setItem(CLIENT_URL_KEY, url);
+    if (urlInp) urlInp.value = url;
+    setSheetStatus('ok', `✓ Завантажено ${clientsDB.length} клієнтів`);
+    renderClients();
+    renderClientMarkers();
+    document.getElementById('client-search-bar').style.display = '';
+  } catch(e) {
+    setSheetStatus('err', '✗ ' + e.message);
+  }
+}
+
+function parseCSVRow(row) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < row.length; i++) {
+    const ch = row[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+function setSheetStatus(type, msg) {
+  const el = document.getElementById('sheets-status');
+  if (!el) return;
+  el.className = 'sheets-status ' + type;
+  el.textContent = msg;
+}
+
+function renderClients(filter = '') {
+  const el = document.getElementById('clients-list');
+  if (!el) return;
+  const q = filter.toLowerCase();
+  const list = q
+    ? clientsDB.filter(c => c.name.toLowerCase().includes(q) || (c.address||'').toLowerCase().includes(q))
+    : clientsDB;
+
+  if (!clientsDB.length) {
+    el.innerHTML = `<div class="empty-state"><div class="big">🏢</div>База клієнтів порожня.<br>Підключіть Google Sheets вище.</div>`;
+    return;
+  }
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><div class="big">🔍</div>Нічого не знайдено</div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(c => `
+    <div class="client-card" onclick="focusClientOnMap('${c.name.replace(/'/g,"\'")}')">
+      <div class="client-dot" style="background:${c.color};box-shadow:0 0 5px ${c.color}40;"></div>
+      <div class="client-body">
+        <div class="client-name">${c.name}</div>
+        ${c.address ? `<div class="client-addr">📍 ${c.address}</div>` : ''}
+        <div class="client-meta">
+          ${c.phone ? `<span>📞 ${c.phone}</span>` : ''}
+          ${c.note  ? `<span>💬 ${c.note}</span>` : ''}
+          ${!isNaN(c.lat) ? `<span style="color:var(--txt3)">${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}</span>` : ''}
+        </div>
+      </div>
+      <button class="client-action" onclick="event.stopPropagation();pickClientForWaypoint('${c.name.replace(/'/g,"\'")}')">
+        📍 Точка
+      </button>
+    </div>`).join('');
+}
+
+function renderClientMarkers() {
+  if (!mapInited) return;
+  // Clear old markers
+  _clientMarkers.forEach(m => map.removeLayer(m));
+  _clientMarkers = [];
+  clientsDB.forEach(c => {
+    if (isNaN(c.lat) || isNaN(c.lng)) return;
+    const marker = L.marker([c.lat, c.lng], {
+      icon: L.divIcon({
+        className: '',
+        html: `<div style="background:${c.color};color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;box-shadow:0 2px 8px ${c.color}60;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>`,
+        iconAnchor: [0, 10]
+      }),
+      zIndexOffset: -100
+    }).addTo(map);
+    const popup = [`<b>${c.name}</b>`];
+    if (c.address) popup.push(`📍 ${c.address}`);
+    if (c.phone)   popup.push(`📞 ${c.phone}`);
+    if (c.note)    popup.push(`💬 ${c.note}`);
+    marker.bindPopup(popup.join('<br>'));
+    _clientMarkers.push(marker);
+  });
+  toast(`🏢 ${clientsDB.length} клієнтів на карті`, 'info');
+}
+
+function focusClientOnMap(name) {
+  const c = clientsDB.find(cl => cl.name === name);
+  if (!c || !mapInited) return;
+  switchView('map');
+  setTimeout(() => map.setView([c.lat, c.lng], 17, { animate: true }), 100);
+}
+
+function pickClientForWaypoint(clientName) {
+  const c = clientsDB.find(cl => cl.name === clientName);
+  if (!c) return;
+  // Find first tracking driver
+  const driver = state.drivers.find(d => d.status === 'tracking');
+  if (!driver) { toast('Спочатку почніть поїздку ▶', 'error'); return; }
+  // Set map pick position to client coords
+  driver._mapPickPos = [c.lat, c.lng];
+  _odoDriverId = driver.id;
+  const prevOdo = getLastOdo(driver);
+  document.getElementById('inp-odo').value = '';
+  document.getElementById('inp-wp-note').value = c.name;
+  document.getElementById('odo-diff-wrap').style.display = 'none';
+  document.getElementById('odo-warn').style.display = 'none';
+  document.getElementById('odo-prev-hint').textContent = prevOdo !== null
+    ? `Попереднє показання: ${prevOdo.toLocaleString('uk-UA')} км`
+    : `📍 ${c.address || c.name}`;
+  document.querySelector('#modal-odo .modal-title').textContent = `🏢 ${c.name}`;
+  openModal('modal-odo');
+  _haptic('light');
+}
+
 // SERVICE WORKER
 // ══════════════════════════════════════
 if ('serviceWorker' in navigator) {
@@ -2489,6 +2768,14 @@ loadState();
 state.drivers.forEach(d => { if (!d._coords) d._coords = []; });
 renderDrivers();
 updateActiveBadge();
+
+// Restore saved Sheets URL and load clients
+const savedUrl = localStorage.getItem(CLIENT_URL_KEY);
+if (savedUrl) {
+  const urlInp = document.getElementById('inp-sheets-url');
+  if (urlInp) urlInp.value = savedUrl;
+  loadClientsFromSheets();
+}
 
 // Background: fetch missing addresses for saved trips (throttled)
 setTimeout(async () => {
