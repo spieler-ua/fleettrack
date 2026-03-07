@@ -1822,7 +1822,10 @@ let _stAwaitMap  = false;  // waiting for map pick to complete
 function startTracking(driverId) {
   if (!navigator.geolocation) { toast('GPS недоступний в цьому браузері', 'error'); return; }
   const driver = state.drivers.find(d => d.id === driverId);
-  if (!driver || driver.status !== 'idle') return;
+  if (!driver) return;
+  if (driver.status === 'tracking' || driver.status === 'paused') {
+    toast('Поїздка вже активна', 'error'); return;
+  }
 
   _stDriverId = driverId;
   _stSource   = 'gps';
@@ -2143,21 +2146,22 @@ function stopTracking(driverId) {
   if (driver._coords && driver._coords.length > 1) {
     const wpsWithOdo = (driver.waypoints || []).filter(w => w.odo != null);
     const odoStart = wpsWithOdo.length ? wpsWithOdo[0].odo : null;
-    const odoEnd   = wpsWithOdo.length ? wpsWithOdo[wpsWithOdo.length-1].odo : null;
+    const odoLast  = wpsWithOdo.length ? wpsWithOdo[wpsWithOdo.length - 1].odo : null;
 
-    // Add GPS driven after the last odometer waypoint to get accurate total
-    const lastWp = wpsWithOdo.length ? wpsWithOdo[wpsWithOdo.length-1] : null;
+    // GPS driven after the last odometer waypoint
+    const lastWp = wpsWithOdo.length ? wpsWithOdo[wpsWithOdo.length - 1] : null;
     const gpsSinceLastWp = lastWp
       ? Math.max(0, (driver.distance || 0) - parseFloat(lastWp.distFromStart || 0))
       : (driver.distance || 0);
 
-    // odoTotal = odometer span between points + GPS driven after last point
-    const odoTotal = odoStart !== null
-      ? (odoEnd - odoStart) + gpsSinceLastWp
-      : null;
-
     // Calculated finish odometer = last reading + GPS after it
-    const odoEndCalc = odoEnd !== null ? odoEnd + gpsSinceLastWp : null;
+    const odoEndCalc = odoLast !== null ? odoLast + gpsSinceLastWp : null;
+
+    // Total = span from first to last reading + GPS after last
+    // If only one waypoint (start only), total = GPS driven since start
+    const odoTotal = odoStart !== null
+      ? (odoLast - odoStart) + gpsSinceLastWp
+      : null;
 
     const trip = {
       id: Date.now(),
@@ -2571,11 +2575,21 @@ function renderHistory() {
   }
 
   el.innerHTML = trips.map(t => {
-    const odoRow = t.odoTotal !== null && t.odoTotal !== undefined
-      ? `<div class="trip-row">
-          <div class="trip-cell"><div class="tc-val" style="color:var(--b)">${t.odoStart?.toLocaleString('uk-UA') ?? '—'}</div><div class="tc-lbl">Старт спідометр</div></div>
-          <div class="trip-cell"><div class="tc-val" style="color:var(--b)">${t.odoEnd?.toLocaleString('uk-UA') ?? '—'}</div><div class="tc-lbl">Фініш спідометр</div></div>
-          <div class="trip-cell"><div class="tc-val" style="color:var(--g)">+${t.odoTotal.toFixed(1)}</div><div class="tc-lbl">Пробіг спідом. км</div></div>
+    const hasOdo = t.odoStart != null || t.odoEnd != null;
+    const odoRow = hasOdo
+      ? `<div class="trip-row" style="background:rgba(68,138,255,0.04);border-radius:8px;margin-top:6px;border:1px solid rgba(68,138,255,0.1);">
+          <div class="trip-cell">
+            <div class="tc-val" style="color:var(--b)">${t.odoStart != null ? Math.round(t.odoStart).toLocaleString('uk-UA') : '—'}</div>
+            <div class="tc-lbl">📟 Старт км</div>
+          </div>
+          <div class="trip-cell">
+            <div class="tc-val" style="color:var(--b)">${t.odoEnd != null ? Math.round(t.odoEnd).toLocaleString('uk-UA') : '—'}</div>
+            <div class="tc-lbl">📟 Фініш км</div>
+          </div>
+          <div class="trip-cell">
+            <div class="tc-val" style="color:var(--g)">${t.odoTotal != null ? '+' + parseFloat(t.odoTotal).toFixed(1) : '—'}</div>
+            <div class="tc-lbl">Пробіг спідом.</div>
+          </div>
         </div>`
       : '';
 
