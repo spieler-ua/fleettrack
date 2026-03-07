@@ -935,6 +935,24 @@ body {
 }
 .map-coord-readout.active { display: block; }
 
+/* ── MY LOCATION DOT ── */
+.my-location-dot {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--b);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 4px rgba(68,138,255,0.3), 0 2px 8px rgba(0,0,0,0.4);
+  animation: loc-pulse 2s ease-out infinite;
+}
+@keyframes loc-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(68,138,255,0.5), 0 2px 8px rgba(0,0,0,0.4); }
+  70%  { box-shadow: 0 0 0 12px rgba(68,138,255,0), 0 2px 8px rgba(0,0,0,0.4); }
+  100% { box-shadow: 0 0 0 0 rgba(68,138,255,0), 0 2px 8px rgba(0,0,0,0.4); }
+}
+#btn-locate.locating { color: var(--b); animation: btn-spin 1s linear infinite; }
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+#btn-locate.located { color: var(--g); border-color: rgba(0,230,118,0.4); }
+
 /* search results dropdown */
 .search-results {
   position: absolute;
@@ -1008,6 +1026,26 @@ body {
     </div>
   </div>
 
+  <!-- Free pin bar -->
+  <div class="map-pick-bar" id="map-free-pin-bar" style="border-color:var(--g);">
+    <div class="map-pick-title" style="color:var(--g);">
+      ✚ Поставити мітку на карті
+    </div>
+    <div class="map-pick-search" style="position:relative;">
+      <input type="text" id="inp-free-search" placeholder="Пошук адреси..." autocomplete="off" onkeydown="if(event.key==='Enter')freeGeoSearch()"/>
+      <button class="map-pick-search-btn" onclick="freeGeoSearch()" style="background:var(--g);">🔍</button>
+      <div class="search-results" id="free-search-results" style="display:none;"></div>
+    </div>
+    <div class="map-pick-hint">Перемістіть карту — хрест вкаже місце мітки</div>
+    <div id="inp-free-label-wrap" style="padding:0;">
+      <input class="form-input" id="inp-free-label" type="text" placeholder="Назва мітки (необов'язково)" maxlength="50" autocomplete="off" style="margin-top:0;font-size:13px;padding:9px 12px;"/>
+    </div>
+    <div class="map-pick-actions">
+      <button class="modal-btn cancel" style="flex:1" onclick="cancelFreePinMode()">Скасувати</button>
+      <button class="modal-btn confirm" style="flex:2;background:var(--g);" onclick="confirmFreePin()">✚ Поставити мітку</button>
+    </div>
+  </div>
+
   <!-- Crosshair -->
   <div class="map-crosshair" id="map-crosshair">
     <svg width="48" height="48" viewBox="0 0 48 48">
@@ -1024,7 +1062,9 @@ body {
   <div class="map-coord-readout" id="map-coord-readout"></div>
 
   <div class="map-controls">
-    <button class="map-ctrl-btn" id="btn-map-pick-mode" onclick="startMapPickMode()" title="Додати точку з карти" style="color:var(--o);border-color:rgba(255,145,0,0.4);">📍</button>
+    <button class="map-ctrl-btn" id="btn-locate" onclick="locateMe()" title="Моє місцезнаходження" style="color:var(--b);border-color:rgba(68,138,255,0.4);">◎</button>
+    <button class="map-ctrl-btn" id="btn-free-pin" onclick="startFreePinMode()" title="Поставити мітку на карті" style="color:var(--g);border-color:rgba(0,230,118,0.3);">✚</button>
+    <button class="map-ctrl-btn" id="btn-map-pick-mode" onclick="startMapPickMode()" title="Точка зупинки для водія" style="color:var(--o);border-color:rgba(255,145,0,0.4);">📍</button>
     <button class="map-ctrl-btn" onclick="centerOnDrivers()" title="Усі водії">⊙</button>
     <button class="map-ctrl-btn" onclick="map.zoomIn()" title="Наблизити">+</button>
     <button class="map-ctrl-btn" onclick="map.zoomOut()" title="Віддалити">−</button>
@@ -1480,6 +1520,211 @@ function selectSearchResult(lat, lng, el) {
   map.setView([parseFloat(lat), parseFloat(lng)], 17, { animate: true });
   document.getElementById('search-results').style.display = 'none';
   document.getElementById('inp-geo-search').value = el.querySelector('strong').textContent;
+  _haptic('light');
+}
+
+
+// ══════════════════════════════════════
+// MY LOCATION
+// ══════════════════════════════════════
+let _myLocationMarker = null;
+let _myLocationCircle = null;
+let _locating = false;
+
+function locateMe() {
+  if (!navigator.geolocation) { toast('GPS недоступний в цьому браузері', 'error'); return; }
+  if (!mapInited) initMap();
+
+  const btn = document.getElementById('btn-locate');
+  if (_locating) return;
+  _locating = true;
+  btn.classList.add('locating');
+  btn.title = 'Визначення...';
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      _locating = false;
+      btn.classList.remove('locating');
+      btn.classList.add('located');
+      btn.title = 'Моє місцезнаходження';
+
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const acc = pos.coords.accuracy;
+
+      // Remove old markers
+      if (_myLocationMarker) { map.removeLayer(_myLocationMarker); map.removeLayer(_myLocationCircle); }
+
+      // Accuracy circle
+      _myLocationCircle = L.circle([lat, lng], {
+        radius: acc,
+        color: '#448aff',
+        fillColor: '#448aff',
+        fillOpacity: 0.08,
+        weight: 1,
+        dashArray: '4,4',
+      }).addTo(map);
+
+      // Blue dot marker
+      _myLocationMarker = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: '',
+          html: '<div class="my-location-dot"></div>',
+          iconSize: [16, 16],
+          iconAnchor: [8, 8],
+        }),
+        zIndexOffset: 1000,
+      }).addTo(map);
+      _myLocationMarker.bindPopup(`<b>Ви тут</b><br>Точність: ${Math.round(acc)} м`);
+
+      map.setView([lat, lng], 16, { animate: true });
+      toast(`📍 Знайдено · точність ${Math.round(acc)} м`, 'success');
+    },
+    err => {
+      _locating = false;
+      btn.classList.remove('locating');
+      const msgs = { 1: 'Доступ до геолокації заборонено. Дозвольте в налаштуваннях браузера.', 2: 'GPS сигнал недоступний', 3: 'Час очікування вичерпано' };
+      toast(msgs[err.code] || 'Помилка геолокації', 'error');
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+// ══════════════════════════════════════
+// FREE PIN MODE — ставити мітки без поїздки
+// ══════════════════════════════════════
+let _freePinMoveHandler = null;
+let _freePins = [];
+let _freeSearchTimeout = null;
+
+function startFreePinMode() {
+  if (!mapInited) initMap();
+  document.getElementById('map-free-pin-bar').classList.add('active');
+  document.getElementById('map-crosshair').classList.add('active');
+  document.getElementById('map-coord-readout').classList.add('active');
+  document.getElementById('btn-free-pin').style.background = 'rgba(0,230,118,0.15)';
+  document.getElementById('inp-free-label').value = '';
+
+  _freePinMoveHandler = () => {
+    const c = map.getCenter();
+    document.getElementById('map-coord-readout').textContent =
+      `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
+  };
+  map.on('move', _freePinMoveHandler);
+  _freePinMoveHandler();
+
+  // Search for free pin bar
+  const inp = document.getElementById('inp-free-search');
+  inp.value = '';
+  inp.oninput = () => {
+    clearTimeout(_freeSearchTimeout);
+    const q = inp.value.trim();
+    if (q.length < 3) { document.getElementById('free-search-results').style.display = 'none'; return; }
+    _freeSearchTimeout = setTimeout(() => freeGeoSearch(), 600);
+  };
+}
+
+function cancelFreePinMode() {
+  _deactivateFreePinMode();
+  toast('Скасовано', 'info');
+}
+
+function _deactivateFreePinMode() {
+  document.getElementById('map-free-pin-bar').classList.remove('active');
+  document.getElementById('map-crosshair').classList.remove('active');
+  document.getElementById('map-coord-readout').classList.remove('active');
+  document.getElementById('btn-free-pin').style.background = '';
+  document.getElementById('free-search-results').style.display = 'none';
+  document.getElementById('inp-free-search').value = '';
+  if (_freePinMoveHandler) { map.off('move', _freePinMoveHandler); _freePinMoveHandler = null; }
+}
+
+function confirmFreePin() {
+  const center = map.getCenter();
+  const lat = center.lat, lng = center.lng;
+  const label = document.getElementById('inp-free-label').value.trim() || `Мітка ${_freePins.length + 1}`;
+  _deactivateFreePinMode();
+
+  const pin = { lat, lng, label, time: new Date().toLocaleTimeString('uk-UA') };
+  _freePins.push(pin);
+
+  // Green pin marker
+  const marker = L.marker([lat, lng], {
+    icon: L.divIcon({
+      className: '',
+      html: `<div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="background:var(--g,#00e676);color:#060810;font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,230,118,0.5);max-width:140px;overflow:hidden;text-overflow:ellipsis;">${label}</div>
+        <div style="width:2px;height:8px;background:var(--g,#00e676);"></div>
+        <div style="width:7px;height:7px;border-radius:50%;background:var(--g,#00e676);"></div>
+      </div>`,
+      iconSize: [0, 0],
+      iconAnchor: [0, 23],
+    }),
+    zIndexOffset: 300,
+  }).addTo(map);
+
+  // Async reverse geocode for popup enrichment
+  reverseGeocode(lat, lng).then(addr => {
+    marker.bindPopup(
+      `<b>📍 ${label}</b><br>` +
+      (addr ? `${addr}<br>` : '') +
+      `<span style="color:#6b728f;font-size:10px;">${lat.toFixed(5)}, ${lng.toFixed(5)}</span><br>` +
+      `<span style="color:#6b728f;font-size:10px;">${pin.time}</span><br>` +
+      `<a href="#" onclick="event.preventDefault();removeFreePin(${_freePins.indexOf(pin)})" style="color:#ff5252;font-size:10px;">✕ Видалити мітку</a>`
+    ).openPopup();
+  });
+
+  _haptic('light');
+  toast(`✚ Мітку «${label}» поставлено`, 'success');
+}
+
+function removeFreePin(idx) {
+  if (_freePins[idx]) {
+    _freePins.splice(idx, 1);
+    map.closePopup();
+    toast('Мітку видалено', 'info');
+  }
+}
+
+async function freeGeoSearch() {
+  const q = document.getElementById('inp-free-search').value.trim();
+  if (!q) return;
+  const resultsEl = document.getElementById('free-search-results');
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = '<div class="search-result-item" style="color:var(--txt3)">Пошук...</div>';
+
+  // Check clients first
+  const clientMatches = searchClients(q);
+  let html = '';
+  if (clientMatches.length) {
+    html += clientMatches.map(c =>
+      `<div class="search-result-item client-result" onclick="selectFreeSearchResult(${c.lat}, ${c.lng}, this)">
+        <strong>${c.name} <span class="client-tag">клієнт</span></strong>
+        ${c.address ? `<span style="font-size:10px;">${c.address}</span>` : ''}
+      </div>`
+    ).join('');
+  }
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Україна')}&format=json&limit=4&accept-language=uk`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'uk' } });
+    const data = await res.json();
+    html += data.map(item => {
+      const name = item.display_name.split(',').slice(0, 3).join(', ');
+      return `<div class="search-result-item" onclick="selectFreeSearchResult(${item.lat}, ${item.lon}, this)">
+        <strong>${name}</strong>
+      </div>`;
+    }).join('');
+  } catch {}
+
+  resultsEl.innerHTML = html || '<div class="search-result-item" style="color:var(--txt3)">Нічого не знайдено</div>';
+}
+
+function selectFreeSearchResult(lat, lng, el) {
+  map.setView([parseFloat(lat), parseFloat(lng)], 17, { animate: true });
+  document.getElementById('free-search-results').style.display = 'none';
+  document.getElementById('inp-free-search').value = el.querySelector('strong').textContent.replace(/клієнт/g,'').trim();
+  document.getElementById('inp-free-label').value  = el.querySelector('strong').textContent.replace(/клієнт/g,'').trim();
   _haptic('light');
 }
 
