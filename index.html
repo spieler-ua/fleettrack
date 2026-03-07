@@ -1228,6 +1228,59 @@ body {
 <!-- ══════════════════════════════════
      MODAL: CONFIRM CLEAR HISTORY
 ══════════════════════════════════ -->
+<!-- ══════════════════════════════════
+     MODAL: START TRIP
+══════════════════════════════════ -->
+<div class="modal-bg" id="modal-start-trip">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">▶ Початок поїздки</div>
+
+    <div style="display:flex;align-items:center;gap:10px;padding:4px 20px 14px;border-bottom:1px solid var(--line);">
+      <div id="st-avatar" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-weight:800;font-size:14px;flex-shrink:0;"></div>
+      <div>
+        <div id="st-name" style="font-family:var(--sans);font-weight:700;font-size:14px;"></div>
+        <div id="st-vehicle" style="font-size:11px;color:var(--txt2);margin-top:1px;"></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-label">Показання спідометра на старті</div>
+      <div class="odo-input-wrap">
+        <input type="number" id="inp-start-odo" inputmode="numeric"
+          placeholder="Наприклад: 123456" min="0" max="9999999"
+          oninput="onStartOdoInput()"/>
+        <span class="odo-unit">км</span>
+      </div>
+      <div id="st-odo-hint" class="odo-prev-hint" style="text-align:center;margin-top:6px;min-height:16px;"></div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:4px;">
+      <div class="form-label">Початкова точка</div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button id="st-btn-gps" onclick="stSelectSource('gps')"
+          class="da-btn start"
+          style="flex:1;padding:11px 6px;font-size:12px;border-radius:8px;justify-content:center;">
+          📡 GPS авто
+        </button>
+        <button id="st-btn-map" onclick="stSelectSource('map')"
+          class="da-btn map"
+          style="flex:1;padding:11px 6px;font-size:12px;border-radius:8px;justify-content:center;">
+          🗺 З карти
+        </button>
+      </div>
+      <div id="st-source-hint" style="font-size:11px;color:var(--txt3);text-align:center;margin-top:8px;min-height:16px;">
+        GPS визначить точку старту автоматично
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="stCancel()">Скасувати</button>
+      <button class="modal-btn confirm" onclick="stConfirm()">▶ Розпочати</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-confirm-clear">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -1415,16 +1468,19 @@ function _deactivatePickMode() {
 }
 
 function confirmMapPick() {
-  const driver = state.drivers.find(d => d.id === _pickDriverId);
-  if (!driver) { cancelMapPick(); return; }
-
   const center = map.getCenter();
   const lat = center.lat;
   const lng = center.lng;
-
-  // Temporarily override _lastPos to map center, open odo modal
-  driver._mapPickPos = [lat, lng];
   _deactivatePickMode();
+
+  // If we were picking the START point for a new trip
+  if (_stAwaitMap) {
+    _stOnMapPicked(lat, lng);
+    return;
+  }
+
+  const driver = state.drivers.find(d => d.id === _pickDriverId);
+  if (!driver) return;
 
   // Open odometer modal with map-picked position
   _odoDriverId = _pickDriverId;
@@ -1755,37 +1811,207 @@ function renderLegend() {
 const watchIds = {}; // driverId → watchId
 const trackIntervals = {}; // driverId → timerInterval
 
+// ══════════════════════════════════════
+// START TRIP FLOW
+// ══════════════════════════════════════
+let _stDriverId  = null;   // driver id being started
+let _stSource    = 'gps';  // 'gps' | 'map'
+let _stMapPos    = null;   // [lat,lng] if map was chosen
+let _stAwaitMap  = false;  // waiting for map pick to complete
+
 function startTracking(driverId) {
   if (!navigator.geolocation) { toast('GPS недоступний в цьому браузері', 'error'); return; }
   const driver = state.drivers.find(d => d.id === driverId);
+  if (!driver || driver.status !== 'idle') return;
+
+  _stDriverId = driverId;
+  _stSource   = 'gps';
+  _stMapPos   = null;
+  _stAwaitMap = false;
+
+  // Fill modal header
+  const initials = driver.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  const av = document.getElementById('st-avatar');
+  av.textContent = initials;
+  av.style.background = driver.color + '22';
+  av.style.color = driver.color;
+  document.getElementById('st-name').textContent = driver.name;
+  document.getElementById('st-vehicle').textContent = driver.vehicle || 'Транспорт не вказано';
+
+  // Hint: last odo of this driver
+  const lastT = state.trips.slice().reverse().find(t => t.driverId === driverId && t.odoEnd != null);
+  const hint  = document.getElementById('st-odo-hint');
+  hint.textContent = lastT
+    ? `Попередня поїздка: ${Math.round(lastT.odoEnd).toLocaleString('uk-UA')} км`
+    : '';
+
+  document.getElementById('inp-start-odo').value = '';
+  stSelectSource('gps');
+  _haptic('light');
+  openModal('modal-start-trip');
+  setTimeout(() => document.getElementById('inp-start-odo').focus(), 300);
+}
+
+function onStartOdoInput() {
+  const v = parseFloat(document.getElementById('inp-start-odo').value);
+  const hint = document.getElementById('st-odo-hint');
+  if (!isNaN(v) && v > 0) {
+    hint.textContent  = `Старт: ${Math.round(v).toLocaleString('uk-UA')} км`;
+    hint.style.color  = 'var(--g)';
+  } else {
+    hint.textContent  = '';
+    hint.style.color  = 'var(--txt3)';
+  }
+}
+
+function stSelectSource(src) {
+  _stSource = src;
+  const gpsBtn = document.getElementById('st-btn-gps');
+  const mapBtn = document.getElementById('st-btn-map');
+  const hint   = document.getElementById('st-source-hint');
+
+  // Reset both
+  [gpsBtn, mapBtn].forEach(b => {
+    b.style.borderColor = '';
+    b.style.background  = '';
+    b.style.color       = '';
+  });
+
+  if (src === 'gps') {
+    gpsBtn.style.borderColor = 'rgba(0,230,118,0.6)';
+    gpsBtn.style.background  = 'rgba(0,230,118,0.12)';
+    gpsBtn.style.color       = 'var(--g)';
+    hint.textContent = 'GPS визначить точку старту автоматично';
+    hint.style.color = 'var(--txt3)';
+    _stMapPos   = null;
+    _stAwaitMap = false;
+  } else {
+    mapBtn.style.borderColor = 'rgba(68,138,255,0.6)';
+    mapBtn.style.background  = 'rgba(68,138,255,0.12)';
+    mapBtn.style.color       = 'var(--b)';
+    if (_stMapPos) {
+      hint.textContent = `📍 ${_stMapPos[0].toFixed(5)}, ${_stMapPos[1].toFixed(5)}`;
+      hint.style.color = 'var(--b)';
+    } else {
+      hint.textContent = 'Натисніть «Вибрати» щоб вказати точку на карті';
+      hint.style.color = 'var(--txt3)';
+    }
+  }
+}
+
+function stCancel() {
+  _stDriverId  = null;
+  _stAwaitMap  = false;
+  closeModal('modal-start-trip');
+}
+
+function stConfirm() {
+  if (!_stDriverId) return;
+
+  // If map source chosen but no point yet — go pick it
+  if (_stSource === 'map' && !_stMapPos) {
+    _stPickMapPoint();
+    return;
+  }
+
+  const raw = document.getElementById('inp-start-odo').value.trim();
+  const odo = raw !== '' ? parseFloat(raw) : null;
+  if (odo !== null && (isNaN(odo) || odo < 0)) {
+    toast('Невірне значення спідометра', 'error');
+    return;
+  }
+
+  closeModal('modal-start-trip');
+  _stDoStart(odo, _stMapPos);
+}
+
+// Open map pick mode for start point
+function _stPickMapPoint() {
+  _stAwaitMap = true;
+  closeModal('modal-start-trip');
+  if (!mapInited) initMap();
+  switchView('map');
+
+  const driver = state.drivers.find(d => d.id === _stDriverId);
+  setTimeout(() => {
+    // Reuse existing pick bar with special title
+    document.getElementById('pick-driver-name').textContent = (driver?.name || '') + ' · Старт';
+    document.getElementById('map-pick-bar').classList.add('active');
+    document.getElementById('map-crosshair').classList.add('active');
+    document.getElementById('map-coord-readout').classList.add('active');
+    document.getElementById('inp-geo-search').value = '';
+    document.getElementById('search-results').style.display = 'none';
+    _pickMoveHandler = () => {
+      const c = map.getCenter();
+      document.getElementById('map-coord-readout').textContent =
+        `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`;
+    };
+    map.on('move', _pickMoveHandler);
+    _pickMoveHandler();
+  }, 220);
+}
+
+// Called by existing confirmMapPick when _stAwaitMap is set
+function _stOnMapPicked(lat, lng) {
+  _stAwaitMap = false;
+  _stMapPos   = [lat, lng];
+  // Re-open modal with confirmed point
+  const hint = document.getElementById('st-source-hint');
+  hint.textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  hint.style.color = 'var(--b)';
+  stSelectSource('map');
+  openModal('modal-start-trip');
+}
+
+function _stDoStart(odoStart, startPos) {
+  const driver = state.drivers.find(d => d.id === _stDriverId);
   if (!driver) return;
 
-  driver.status = 'tracking';
-  driver._coords = driver._coords || [];
-  driver.distance = driver.distance || 0;
-  driver.waypoints = driver.waypoints || [];
-  driver.tripStart = driver.tripStart || Date.now();
-  driver._tripSeconds = driver._tripSeconds || 0;
+  driver.status       = 'tracking';
+  driver._coords      = [];
+  driver.distance     = 0;
+  driver.waypoints    = [];
+  driver.tripStart    = Date.now();
+  driver._tripSeconds = 0;
+  driver._addrStart   = null;
+  driver._addrStartFetched = false;
+  driver._startOdo    = (odoStart !== null) ? odoStart : null;
+
+  if (startPos) {
+    driver._coords.push(startPos);
+    driver._lastPos = startPos;
+    reverseGeocode(startPos[0], startPos[1]).then(a => {
+      if (a) { driver._addrStart = a; driver._addrStartFetched = true; }
+    });
+  }
 
   _haptic('medium');
 
-  trackIntervals[driverId] = setInterval(() => {
+  trackIntervals[driver.id] = setInterval(() => {
     driver._tripSeconds = (driver._tripSeconds || 0) + 1;
     renderDrivers();
   }, 1000);
 
-  watchIds[driverId] = navigator.geolocation.watchPosition(
-    pos => onGPS(driverId, pos),
+  watchIds[driver.id] = navigator.geolocation.watchPosition(
+    pos => onGPS(driver.id, pos),
     err => toast(`GPS помилка: ${err.message}`, 'error'),
     { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
   );
 
-  saveState(); renderDrivers();
-  if (mapInited) { renderLegend(); }
+  saveState();
+  renderDrivers();
+  if (mapInited) renderLegend();
   updateActiveBadge();
-  toast(`▶ ${driver.name} — відстеження розпочато`, 'success');
+
+  const odoStr = odoStart !== null ? ` · 📟 ${Math.round(odoStart).toLocaleString('uk-UA')} км` : '';
+  toast(`▶ ${driver.name} — поїздку розпочато${odoStr}`, 'success');
+  _stDriverId = null;
 }
 
+
+// ══════════════════════════════════════
+// START TRIP (modal + launch)
+// ══════════════════════════════════════
 function onGPS(driverId, pos) {
   const driver = state.drivers.find(d => d.id === driverId);
   if (!driver || driver.status !== 'tracking') return;
@@ -1809,10 +2035,31 @@ function onGPS(driverId, pos) {
     }
   } else {
     driver._coords.push([lat, lng]);
-    // First fix — pre-fetch start address
+    // First GPS fix: fetch start address
     if (!driver._addrStartFetched) {
       driver._addrStartFetched = true;
       reverseGeocode(lat, lng).then(a => { if (a) driver._addrStart = a; });
+    }
+    // If start odometer was entered, create first waypoint on first fix
+    if (driver._startOdo != null) {
+      const wp = {
+        id: Date.now(), lat, lng,
+        time: new Date().toLocaleTimeString('uk-UA'),
+        distFromStart: '0', distFromPrev: '0',
+        note: 'Старт', odo: driver._startOdo, odoDiff: null, source: 'gps',
+      };
+      driver.waypoints.push(wp);
+      driver._startOdo = null;
+      reverseGeocode(lat, lng).then(addr => { if (addr) { wp.addr = addr; renderDrivers(); } });
+      if (mapInited) {
+        L.marker([lat, lng], {
+          icon: L.divIcon({
+            className: '',
+            html: `<div style="background:${driver.color};color:#060810;font-family:DM Mono,monospace;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;box-shadow:0 0 8px ${driver.color}80;white-space:nowrap;">▶ ${wp.odo.toLocaleString('uk-UA')}</div>`,
+            iconAnchor: [0, 10]
+          })
+        }).addTo(map).bindPopup(`<b>${driver.name} · Старт</b><br>📟 ${wp.odo.toLocaleString('uk-UA')} км`);
+      }
     }
   }
 
