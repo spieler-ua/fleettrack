@@ -67,7 +67,7 @@ body {
 
 /* ─── STATUS BAR ─── */
 .statusbar {
-  height: calc(44px + var(--safe-top));
+  height: calc(52px + var(--safe-top));
   padding-top: var(--safe-top);
   padding: var(--safe-top) 16px 0;
   display: flex;
@@ -81,7 +81,7 @@ body {
 .statusbar .wordmark {
   font-family: var(--sans);
   font-weight: 800;
-  font-size: 17px;
+  font-size: 20px;
   color: var(--g);
   letter-spacing: -0.5px;
   flex: 1;
@@ -90,7 +90,7 @@ body {
 
 /* ─── BOTTOM NAV ─── */
 .bottomnav {
-  height: calc(56px + var(--safe-bot));
+  height: calc(68px + var(--safe-bot));
   padding-bottom: var(--safe-bot);
   background: var(--bg1);
   border-top: 1px solid var(--line);
@@ -110,15 +110,15 @@ body {
   background: transparent;
   color: var(--txt3);
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
   cursor: pointer;
   transition: color 0.2s;
   position: relative;
 }
-.nav-btn svg { width: 20px; height: 20px; transition: transform 0.2s; }
+.nav-btn svg { width: 26px; height: 26px; transition: transform 0.2s; }
 .nav-btn.active { color: var(--g); }
 .nav-btn.active svg { transform: scale(1.1); }
 .nav-btn::after {
@@ -169,12 +169,12 @@ body {
 .drivers-header h2 span { color: var(--txt2); font-weight: 400; font-size: 14px; }
 
 .btn-add-driver {
-  width: 36px; height: 36px;
+  width: 44px; height: 44px;
   border-radius: 50%;
   background: var(--g);
   color: var(--bg0);
   border: none;
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 300;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
@@ -184,10 +184,10 @@ body {
 .btn-add-driver:active { transform: scale(0.95); }
 
 .driver-card {
-  margin: 0 16px 10px;
+  margin: 0 12px 12px;
   background: var(--bg1);
   border: 1px solid var(--line);
-  border-radius: var(--rad);
+  border-radius: 14px;
   overflow: hidden;
   transition: border-color 0.2s;
 }
@@ -195,19 +195,19 @@ body {
 .driver-card.paused { border-color: var(--o); }
 
 .driver-card-top {
-  padding: 12px 14px;
+  padding: 16px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .driver-avatar {
-  width: 42px; height: 42px;
+  width: 52px; height: 52px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--sans);
   font-weight: 800;
-  font-size: 16px;
+  font-size: 19px;
   flex-shrink: 0;
   position: relative;
 }
@@ -229,21 +229,21 @@ body {
 .driver-name {
   font-family: var(--sans);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 17px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .driver-vehicle {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--txt2);
-  margin-top: 1px;
+  margin-top: 3px;
 }
 
 .driver-status {
-  font-size: 10px;
-  font-weight: 500;
-  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
   border-radius: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -258,7 +258,7 @@ body {
   border-top: 1px solid var(--line);
 }
 .driver-stat {
-  padding: 10px;
+  padding: 13px 10px;
   text-align: center;
   border-right: 1px solid var(--line);
 }
@@ -266,10 +266,10 @@ body {
 .driver-stat .val {
   font-family: var(--sans);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 18px;
 }
 .driver-stat .lbl {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--txt3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -279,19 +279,19 @@ body {
 .driver-actions {
   display: flex;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border-top: 1px solid var(--line);
 }
 
 .da-btn {
   flex: 1;
-  padding: 8px;
-  border-radius: 6px;
+  padding: 12px 8px;
+  border-radius: 8px;
   border: 1px solid var(--line2);
   background: transparent;
   font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
   text-transform: uppercase;
@@ -327,12 +327,12 @@ body {
   z-index: 500;
 }
 .map-ctrl-btn {
-  width: 38px; height: 38px;
+  width: 46px; height: 46px;
   background: var(--bg1);
   border: 1px solid var(--line2);
   border-radius: 8px;
   color: var(--txt);
-  font-size: 16px;
+  font-size: 20px;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   backdrop-filter: blur(8px);
@@ -411,10 +411,10 @@ body {
 .chip.active { background: var(--g); color: var(--bg0); border-color: var(--g); font-weight: 500; }
 
 .trip-card {
-  margin: 0 16px 10px;
+  margin: 0 12px 12px;
   background: var(--bg1);
   border: 1px solid var(--line);
-  border-radius: var(--rad);
+  border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
   transition: border-color 0.2s, transform 0.1s;
@@ -437,17 +437,17 @@ body {
 .trip-driver {
   font-family: var(--sans);
   font-weight: 700;
-  font-size: 14px;
+  font-size: 17px;
 }
-.trip-date { font-size: 11px; color: var(--txt2); margin-top: 2px; }
+.trip-date { font-size: 13px; color: var(--txt2); margin-top: 3px; }
 
 .trip-dist {
   font-family: var(--sans);
   font-weight: 800;
-  font-size: 20px;
+  font-size: 24px;
   text-align: right;
 }
-.trip-dist span { font-size: 11px; font-weight: 400; color: var(--txt2); display: block; }
+.trip-dist span { font-size: 12px; font-weight: 400; color: var(--txt2); display: block; }
 
 .trip-row {
   display: flex;
@@ -455,13 +455,13 @@ body {
 }
 .trip-cell {
   flex: 1;
-  padding: 8px 12px;
+  padding: 11px 12px;
   border-right: 1px solid var(--line);
-  font-size: 11px;
+  font-size: 13px;
 }
 .trip-cell:last-child { border-right: none; }
-.trip-cell .tc-val { font-weight: 500; color: var(--txt); }
-.trip-cell .tc-lbl { color: var(--txt3); font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+.trip-cell .tc-val { font-weight: 600; color: var(--txt); font-size: 18px; }
+.trip-cell .tc-lbl { color: var(--txt3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
 
 .empty-state {
   text-align: center;
@@ -509,16 +509,16 @@ body {
 .modal-title {
   font-family: var(--sans);
   font-weight: 700;
-  font-size: 18px;
-  padding: 0 20px 16px;
+  font-size: 20px;
+  padding: 0 20px 18px;
   border-bottom: 1px solid var(--line);
 }
 
-.form-group { padding: 14px 20px 0; }
+.form-group { padding: 18px 20px 0; }
 .form-label {
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
   color: var(--txt2);
   margin-bottom: 6px;
 }
@@ -526,11 +526,11 @@ body {
   width: 100%;
   background: var(--bg2);
   border: 1px solid var(--line2);
-  border-radius: 8px;
-  padding: 11px 14px;
+  border-radius: 10px;
+  padding: 14px 16px;
   color: var(--txt);
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 16px;
   outline: none;
   transition: border-color 0.2s;
   -webkit-appearance: none;
@@ -559,12 +559,12 @@ body {
 }
 .modal-btn {
   flex: 1;
-  padding: 13px;
-  border-radius: 10px;
+  padding: 17px;
+  border-radius: 12px;
   border: none;
   font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   transition: opacity 0.15s, transform 0.1s;
 }
@@ -733,7 +733,7 @@ body {
   color: var(--txt);
   font-family: var(--sans);
   font-weight: 700;
-  font-size: 26px;
+  font-size: 32px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
   -webkit-appearance: none;
@@ -741,7 +741,7 @@ body {
   letter-spacing: 2px;
 }
 .odo-input-wrap input:focus { border-color: var(--g); box-shadow: 0 0 0 3px rgba(0,230,118,0.12); }
-.odo-input-wrap input::placeholder { color: var(--txt3); font-size: 16px; font-weight: 400; letter-spacing: 0; }
+.odo-input-wrap input::placeholder { color: var(--txt3); font-size: 20px; font-weight: 400; letter-spacing: 0; }
 .odo-unit { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--txt2); pointer-events: none; }
 .odo-diff-badge {
   display: inline-flex; align-items: center; gap: 5px;
@@ -1086,9 +1086,7 @@ body {
       <button class="map-ctrl-btn" style="position:static;width:32px;height:32px;font-size:14px;" onclick="clearHistory()" title="Очистити">🗑</button>
     </div>
   </div>
-  <div class="filter-chips" id="filter-chips">
-    <button class="chip active" data-filter="all" onclick="filterHistory(this,'all')">Всі</button>
-  </div>
+
   <div id="history-list" style="flex:1;overflow-y:auto;padding-bottom:8px;"></div>
 </div>
 
@@ -2561,13 +2559,7 @@ function deleteDriver() {
 let historyFilter = 'all';
 
 function renderHistory() {
-  const chips = document.getElementById('filter-chips');
-  const drivers = [...new Set(state.trips.map(t => t.driverName))];
-  chips.innerHTML = `<button class="chip ${historyFilter==='all'?'active':''}" data-filter="all" onclick="filterHistory(this,'all')">Всі</button>` +
-    drivers.map(n => `<button class="chip ${historyFilter===n?'active':''}" onclick="filterHistory(this,'${n}')">${n}</button>`).join('');
-
-  const trips = historyFilter === 'all' ? state.trips : state.trips.filter(t => t.driverName === historyFilter);
-
+  const trips = state.trips;
   const el = document.getElementById('history-list');
   if (!trips.length) {
     el.innerHTML = `<div class="empty-state"><div class="big">📋</div>Поїздок ще немає.<br>Розпочніть відстеження на вкладці <strong style="color:var(--g)">Водії</strong>.</div>`;
@@ -2629,8 +2621,8 @@ function renderHistory() {
       <div class="trip-card-top">
         <div class="trip-color-bar" style="background:${t.color}"></div>
         <div class="trip-meta">
-          <div class="trip-driver">${t.driverName}</div>
-          <div class="trip-date">${t.vehicle ? t.vehicle + ' · ' : ''}${t.date}</div>
+          <div class="trip-driver">${t.vehicle || 'Поїздка'}</div>
+          <div class="trip-date">${t.date}</div>
         </div>
         <div class="trip-dist" style="color:${t.color}">${t.distance}<span>GPS км</span></div>
       </div>
@@ -2653,11 +2645,7 @@ async function fetchAddrForTrip(tripId) {
   toast('✓ Адреси додано', 'success');
 }
 
-function filterHistory(el, filter) {
-  historyFilter = filter;
-  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.filter === filter || c.textContent === filter));
-  renderHistory();
-}
+
 
 function showTripOnMap(tripId) {
   const trip = state.trips.find(t => t.id === tripId);

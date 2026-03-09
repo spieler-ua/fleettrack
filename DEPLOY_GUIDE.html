@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FleetTrack — Інструкція розгортання</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060810; --panel: #0d1020; --border: #1d2236;
+  --g: #00e676; --b: #448aff; --o: #ff9100; --r: #ff5252;
+  --txt: #dce3f5; --txt2: #6b728f; --txt3: #3d4560;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--txt); font-family: 'DM Mono', monospace; line-height: 1.6; padding: 0 0 60px; }
+
+.hero {
+  background: linear-gradient(135deg, #060810 0%, #0d1a10 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 48px 24px 36px;
+  text-align: center;
+}
+.hero-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 32px; color: var(--g); margin-bottom: 8px; }
+.hero-sub { color: var(--txt2); font-size: 14px; }
+
+.container { max-width: 720px; margin: 0 auto; padding: 0 20px; }
+
+.toc {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin: 32px 0 0;
+}
+.toc-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--txt2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.toc a { display: block; color: var(--g); text-decoration: none; font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.toc a:last-child { border-bottom: none; }
+.toc a:hover { color: var(--txt); }
+.toc .num { color: var(--txt3); margin-right: 8px; }
+
+.step-block {
+  margin-top: 40px;
+}
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.step-num {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--g);
+  color: var(--bg);
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.step-num.blue { background: var(--b); }
+.step-num.orange { background: var(--o); }
+.step-num.purple { background: #e040fb; }
+
+.step-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; }
+.step-subtitle { color: var(--txt2); font-size: 12px; margin-top: 2px; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--txt2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-body { padding: 16px; }
+
+.action-list { list-style: none; }
+.action-list li {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  align-items: flex-start;
+}
+.action-list li:last-child { border-bottom: none; }
+.action-num {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--txt2);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.action-text { flex: 1; }
+.action-text strong { color: var(--txt); }
+.action-text code {
+  background: #1a1f35;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  color: var(--g);
+}
+
+.code-block {
+  background: #08090f;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 12px;
+  color: #a8b4d8;
+  overflow-x: auto;
+  margin: 12px 0;
+  line-height: 1.7;
+}
+.code-block .cm { color: var(--txt3); }
+.code-block .ck { color: var(--b); }
+.code-block .cv { color: var(--g); }
+.code-block .cb { color: var(--o); }
+
+.tip {
+  background: rgba(0,230,118,0.06);
+  border: 1px solid rgba(0,230,118,0.2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--txt2);
+  margin: 12px 0;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.tip .icon { font-size: 16px; flex-shrink: 0; }
+.tip strong { color: var(--g); }
+
+.warn {
+  background: rgba(255,145,0,0.06);
+  border: 1px solid rgba(255,145,0,0.2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--txt2);
+  margin: 12px 0;
+  display: flex;
+  gap: 10px;
+}
+.warn .icon { flex-shrink: 0; }
+.warn strong { color: var(--o); }
+
+.url-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #0d1020;
+  border: 1px solid var(--g);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--g);
+  cursor: pointer;
+  text-decoration: none;
+}
+.url-pill:hover { background: rgba(0,230,118,0.1); }
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 40px 0 0;
+}
+
+.final-box {
+  background: linear-gradient(135deg, rgba(0,230,118,0.08), rgba(68,138,255,0.08));
+  border: 1px solid rgba(0,230,118,0.25);
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 40px;
+  text-align: center;
+}
+.final-box h3 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--g); margin-bottom: 8px; }
+.final-box p { font-size: 13px; color: var(--txt2); }
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.tag.free { background: rgba(0,230,118,0.15); color: var(--g); }
+.tag.req { background: rgba(255,82,82,0.15); color: var(--r); }
+.tag.easy { background: rgba(68,138,255,0.15); color: var(--b); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-logo">⬡ FleetTrack</div>
+  <div class="hero-sub">Покрокова інструкція: розгортання як Telegram Mini App</div>
+</div>
+
+<div class="container">
+
+  <div class="toc">
+    <div class="toc-title">Зміст</div>
+    <a href="#step1"><span class="num">01</span> Завантажити файли на GitHub Pages</a>
+    <a href="#step2"><span class="num">02</span> Створити бота через @BotFather</a>
+    <a href="#step3"><span class="num">03</span> Підключити Mini App до бота</a>
+    <a href="#step4"><span class="num">04</span> Перевірити і поділитись</a>
+  </div>
+
+  <!-- ══ STEP 1 ══ -->
+  <div class="step-block" id="step1">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Розмістіть файли онлайн</div>
+        <div class="step-subtitle">GitHub Pages — безкоштовно, назавжди, без сервера</div>
+      </div>
+    </div>
+
+    <div class="tip"><span class="icon">💡</span><div>Telegram Mini App вимагає HTTPS-посилання на ваш застосунок. GitHub Pages надає його безкоштовно.</div></div>
+
+    <div class="card">
+      <div class="card-header">📁 Файли які потрібно завантажити</div>
+      <div class="card-body">
+        <ul class="action-list">
+          <li><div class="action-num">📄</div><div class="action-text"><code>index.html</code> — головний застосунок</div></li>
+          <li><div class="action-num">📄</div><div class="action-text"><code>manifest.json</code> — PWA маніфест</div></li>
+          <li><div class="action-num">📄</div><div class="action-text"><code>sw.js</code> — Service Worker</div></li>
+          <li><div class="action-num">📁</div><div class="action-text"><code>icons/</code> — папка з іконками (icon-192.png, icon-512.png)</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">🐙 Кроки на GitHub <span class="tag free">Безкоштовно</span> <span class="tag easy">5 хвилин</span></div>
+      <div class="card-body">
+        <ul class="action-list">
+          <li>
+            <div class="action-num">1</div>
+            <div class="action-text">
+              Відкрийте <strong><a href="https://github.com" class="url-pill" target="_blank">🔗 github.com</a></strong> і зареєструйтесь (або увійдіть)
+            </div>
+          </li>
+          <li>
+            <div class="action-num">2</div>
+            <div class="action-text">
+              Натисніть <strong>New repository</strong> (зелена кнопка вгорі справа)<br>
+              Назва: <code>fleettrack</code> · Visibility: <strong>Public</strong> · Create repository
+            </div>
+          </li>
+          <li>
+            <div class="action-num">3</div>
+            <div class="action-text">
+              На сторінці репозиторію натисніть <strong>uploading an existing file</strong><br>
+              Перетягніть всі 4 файли + папку <code>icons/</code> → <strong>Commit changes</strong>
+            </div>
+          </li>
+          <li>
+            <div class="action-num">4</div>
+            <div class="action-text">
+              Перейдіть до <strong>Settings</strong> (вкладка вгорі) → розділ <strong>Pages</strong> (ліве меню)<br>
+              Source: <strong>Deploy from a branch</strong> · Branch: <strong>main</strong> · Folder: <strong>/ (root)</strong> → Save
+            </div>
+          </li>
+          <li>
+            <div class="action-num">5</div>
+            <div class="action-text">
+              Зачекайте 1-2 хвилини. З'явиться ваш URL:<br>
+              <code>https://ВАШ-ЛОГІН.github.io/fleettrack/</code><br>
+              <strong>Збережіть цей URL — він знадобиться в кроці 3</strong>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="warn"><span class="icon">⚠️</span><div>Якщо папку <code>icons/</code> не вдається завантажити через браузер — скористайтесь <strong>GitHub Desktop</strong> (безкоштовна програма) або просто перетягніть файли icons прямо в кореневу папку репозиторію.</div></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══ STEP 2 ══ -->
+  <div class="step-block" id="step2">
+    <div class="step-header">
+      <div class="step-num blue">2</div>
+      <div>
+        <div class="step-title">Створіть бота в Telegram</div>
+        <div class="step-subtitle">Через офіційного @BotFather — 2 хвилини</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">🤖 Розмова з @BotFather</div>
+      <div class="card-body">
+        <ul class="action-list">
+          <li>
+            <div class="action-num">1</div>
+            <div class="action-text">
+              Відкрийте Telegram, знайдіть <strong>@BotFather</strong> (синя галочка ✓)<br>
+              Натисніть <strong>START</strong>
+            </div>
+          </li>
+          <li>
+            <div class="action-num">2</div>
+            <div class="action-text">Надішліть команду: <code>/newbot</code></div>
+          </li>
+          <li>
+            <div class="action-num">3</div>
+            <div class="action-text">
+              <strong>Назва бота</strong> (відображається в чаті):<br>
+              Наприклад: <code>FleetTrack GPS</code>
+            </div>
+          </li>
+          <li>
+            <div class="action-num">4</div>
+            <div class="action-text">
+              <strong>Username бота</strong> (має закінчуватись на <code>_bot</code>):<br>
+              Наприклад: <code>fleettrack_gps_bot</code>
+            </div>
+          </li>
+          <li>
+            <div class="action-num">5</div>
+            <div class="action-text">
+              BotFather дасть вам <strong>TOKEN</strong> — довгий рядок вигляду:<br>
+              <code>7123456789:AAFxxx...yyy</code><br>
+              ⚠️ <strong>Збережіть токен у безпечному місці, нікому не передавайте</strong>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══ STEP 3 ══ -->
+  <div class="step-block" id="step3">
+    <div class="step-header">
+      <div class="step-num orange">3</div>
+      <div>
+        <div class="step-title">Підключіть Mini App до бота</div>
+        <div class="step-subtitle">Налаштування кнопки меню і Web App</div>
+      </div>
+    </div>
+
+    <div class="tip"><span class="icon">💡</span><div>Є два способи — <strong>Menu Button</strong> (кнопка біля поля вводу) і <strong>/newapp</strong> (окремий застосунок). Рекомендуємо обидва.</div></div>
+
+    <div class="card">
+      <div class="card-header">🔘 Спосіб А — Кнопка меню (найшвидше)</div>
+      <div class="card-body">
+        <ul class="action-list">
+          <li>
+            <div class="action-num">1</div>
+            <div class="action-text">В чаті з @BotFather надішліть: <code>/mybots</code></div>
+          </li>
+          <li>
+            <div class="action-num">2</div>
+            <div class="action-text">Виберіть вашого бота → <strong>Bot Settings</strong> → <strong>Menu Button</strong></div>
+          </li>
+          <li>
+            <div class="action-num">3</div>
+            <div class="action-text">
+              <strong>Configure menu button</strong><br>
+              URL: <code>https://ВАШ-ЛОГІН.github.io/fleettrack/</code><br>
+              Text: <code>🚗 Відкрити FleetTrack</code>
+            </div>
+          </li>
+        </ul>
+        <div class="tip" style="margin-top:12px"><span class="icon">✅</span><div>Тепер у чаті з ботом з'явиться кнопка <strong>🚗 Відкрити FleetTrack</strong> поруч з полем вводу.</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">📱 Спосіб Б — Окремий Mini App (опціонально)</div>
+      <div class="card-body">
+        <ul class="action-list">
+          <li>
+            <div class="action-num">1</div>
+            <div class="action-text">В @BotFather надішліть: <code>/newapp</code></div>
+          </li>
+          <li>
+            <div class="action-num">2</div>
+            <div class="action-text">Виберіть вашого бота зі списку</div>
+          </li>
+          <li>
+            <div class="action-num">3</div>
+            <div class="action-text">Title: <code>FleetTrack</code></div>
+          </li>
+          <li>
+            <div class="action-num">4</div>
+            <div class="action-text">Description: <code>GPS відстеження маршрутів водіїв</code></div>
+          </li>
+          <li>
+            <div class="action-num">5</div>
+            <div class="action-text">Web App URL: <code>https://ВАШ-ЛОГІН.github.io/fleettrack/</code></div>
+          </li>
+          <li>
+            <div class="action-num">6</div>
+            <div class="action-text">
+              Завантажте іконку (будь-яке квадратне фото 640×640px)<br>
+              Ви отримаєте посилання: <code>https://t.me/ваш_бот/fleettrack</code>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">💬 Додайте команду /start з кнопкою (опціонально)</div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--txt2);margin-bottom:12px;">Щоб при /start одразу відкривався застосунок — використайте inline keyboard через Telegram API:</p>
+        <div class="code-block">
+<span class="cm"># Викликати через браузер (замінити TOKEN і URL):</span>
+
+<span class="cb">https://api.telegram.org/bot</span><span class="cv">TOKEN</span><span class="cb">/setMyCommands</span>
+<span class="cm">?commands=[{"command":"start","description":"Відкрити FleetTrack"}]</span>
+
+<span class="cm"># Відправити повідомлення з кнопкою (через curl або Postman):</span>
+<span class="ck">POST</span> https://api.telegram.org/bot<span class="cv">TOKEN</span>/sendMessage
+{
+  "chat_id": <span class="cv">ВАШ_CHAT_ID</span>,
+  "text": "🚗 FleetTrack готовий до роботи!",
+  "reply_markup": {
+    "inline_keyboard": [[{
+      "text": "Відкрити застосунок",
+      "web_app": { "url": "<span class="cv">https://ВАШ-ЛОГІН.github.io/fleettrack/</span>" }
+    }]]
+  }
+}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══ STEP 4 ══ -->
+  <div class="step-block" id="step4">
+    <div class="step-header">
+      <div class="step-num purple">4</div>
+      <div>
+        <div class="step-title">Перевірка і поширення</div>
+        <div class="step-subtitle">Фінальні кроки</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">✅ Чеклист перевірки</div>
+      <div class="card-body">
+        <ul class="action-list">
+          <li><div class="action-num">☐</div><div class="action-text">Відкрийте <code>https://ВАШ-ЛОГІН.github.io/fleettrack/</code> у браузері — застосунок завантажується?</div></li>
+          <li><div class="action-num">☐</div><div class="action-text">Знайдіть вашого бота в Telegram → натисніть кнопку меню → застосунок відкрився на весь екран?</div></li>
+          <li><div class="action-num">☐</div><div class="action-text">Дозвольте доступ до GPS → з'явився маркер на карті?</div></li>
+          <li><div class="action-num">☐</div><div class="action-text">Натисніть <strong>▶ Старт</strong> → кнопка вібрує (на Android/iPhone)?</div></li>
+          <li><div class="action-num">☐</div><div class="action-text">Вкладка Журнал → кнопка <strong>Excel</strong> → файл завантажується?</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">🔗 Як поділитись з водіями</div>
+      <div class="card-body">
+        <ul class="action-list">
+          <li><div class="action-num">1</div><div class="action-text">Надішліть водіям посилання на бота: <code>https://t.me/ваш_бот</code></div></li>
+          <li><div class="action-num">2</div><div class="action-text">Або якщо створили Mini App: <code>https://t.me/ваш_бот/fleettrack</code></div></li>
+          <li><div class="action-num">3</div><div class="action-text">Водій натискає START → кнопка меню → вводить ім'я → починає поїздку</div></li>
+        </ul>
+        <div class="tip" style="margin-top:12px"><span class="icon">📌</span><div>Ім'я водія підтягується автоматично з профілю Telegram — водію не треба нічого вводити вручну.</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">🛠 Поширені проблеми</div>
+      <div class="card-body">
+        <ul class="action-list">
+          <li>
+            <div class="action-num">❓</div>
+            <div class="action-text">
+              <strong>Застосунок не відкривається в Telegram</strong><br>
+              Перевірте що URL починається з <code>https://</code> (не http)
+            </div>
+          </li>
+          <li>
+            <div class="action-num">❓</div>
+            <div class="action-text">
+              <strong>GPS не працює в Mini App</strong><br>
+              На iOS: Налаштування → Telegram → Геолокація → «При використанні»<br>
+              На Android: Telegram → Дозволи → Місцеположення → Дозволити
+            </div>
+          </li>
+          <li>
+            <div class="action-num">❓</div>
+            <div class="action-text">
+              <strong>GitHub Pages показує 404</strong><br>
+              Зачекайте 2-3 хвилини після збереження налаштувань Pages. Іноді потрібен перший commit після увімкнення.
+            </div>
+          </li>
+          <li>
+            <div class="action-num">❓</div>
+            <div class="action-text">
+              <strong>Карта не завантажується</strong><br>
+              Перевірте підключення до інтернету. OpenStreetMap потребує мережі при першому відкритті.
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="final-box">
+    <h3>🎉 Все готово!</h3>
+    <p>Ваш FleetTrack працює як Telegram Mini App.<br>Водії відкривають його прямо в Telegram — без установки, без реєстрацій.</p>
+  </div>
+
+</div>
+</body>
+</html>
