@@ -168,6 +168,25 @@ body {
 }
 .drivers-header h2 span { color: var(--txt2); font-weight: 400; font-size: 14px; }
 
+.btn-add-driver-fab {
+  position: absolute;
+  top: calc(14px + var(--safe-top));
+  right: 16px;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--g);
+  color: var(--bg0);
+  border: none;
+  font-size: 28px;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 20px rgba(0,230,118,0.4);
+  transition: box-shadow 0.2s, transform 0.1s;
+  z-index: 50;
+}
+.btn-add-driver-fab:active { transform: scale(0.93); }
+
 .btn-add-driver {
   width: 44px; height: 44px;
   border-radius: 50%;
@@ -320,7 +339,7 @@ body {
 
 .map-controls {
   position: absolute;
-  top: 12px; right: 12px;
+  top: 80px; right: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -997,7 +1016,7 @@ body {
     <button class="install-btn" id="install-btn">Встановити</button>
     <button class="install-close" onclick="dismissInstall()">×</button>
   </div>
-  <div id="drivers-list" style="flex:1;overflow-y:auto;padding-bottom:8px;">
+  <div id="drivers-list" style="flex:1;overflow-y:auto;padding-bottom:8px;padding-top:60px;">
     <!-- generated -->
   </div>
 </div>
